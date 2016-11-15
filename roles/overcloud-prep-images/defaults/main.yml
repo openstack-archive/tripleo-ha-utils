@@ -1,0 +1,8 @@
+overcloud_prep_images_script: overcloud-prep-images.sh.j2
+overcloud_prep_images_log: "{{ working_dir }}/overcloud_prep_images.log"
+
+step_introspect: false
+bash_deploy_ramdisk: false
+step_install_undercloud: true
+
+
