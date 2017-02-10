@@ -1,6 +1,0 @@
----
-- name:  Run tempest
-  hosts: undercloud
-  gather_facts: no
-  roles:
-    - validate-tempest
