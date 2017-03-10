@@ -1,0 +1,4 @@
+---
+
+overcloud_working_dir: "/home/heat-admin"
+working_dir: "/home/stack"
