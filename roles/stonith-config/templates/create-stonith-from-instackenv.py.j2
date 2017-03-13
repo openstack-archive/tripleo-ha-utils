@@ -1,0 +1,89 @@
+#!/bin/python
+
+import os
+import json
+import sys
+# The below will be enabled once OS_AUTH_URL=http://192.0.2.1:5000/v3
+#from keystoneauth1.identity import v3
+from keystoneauth1.identity import v2
+from keystoneauth1 import session
+from pprint import pprint
+from novaclient import client
+
+# Environment variables (need to source before launching):
+# export NOVA_VERSION=1.1
+# export OS_PASSWORD=$(sudo hiera admin_password)
+# If v3:
+#  export OS_AUTH_URL=http://192.0.2.1:5000/v3
+# else
+#  export OS_AUTH_URL=http://192.0.2.1:5000/v2.0
+# export OS_USERNAME=admin
+# export OS_TENANT_NAME=admin
+# export COMPUTE_API_VERSION=1.1
+# export OS_NO_CACHE=True
+
+# JSON format:
+#{ "nodes": [
+#{
+#  "mac": [
+#"b8:ca:3a:66:e3:82"
+#  ],
+#  "_comment":"host12-rack03.scale.openstack.engineering.redhat.com",
+#  "cpu": "",
+#  "memory": "",
+#  "disk": "",
+#  "arch": "x86_64",
+#  "pm_type":"pxe_ipmitool",
+#  "pm_user":"qe-scale",
+#  "pm_password":"d0ckingSt4tion",
+#  "pm_addr":"10.1.8.102"
+#},
+#...
+
+# JSon file as first parameter
+jdata = open(sys.argv[1])
+data = json.load(jdata)
+
+# controllers, computes or all
+fence_devices = sys.argv[2]
+
+os_username = os.environ['OS_USERNAME']
+os_password = os.environ['OS_PASSWORD']
+os_auth_url = os.environ['OS_AUTH_URL']
+
+if os.environ['OS_TENANT_NAME']:
+ os_tenant_name = os.environ['OS_TENANT_NAME']
+else:
+ os_tenant_name = os.environ['OS_PROJECT_NAME']
+
+os_compute_api_version = os.environ['COMPUTE_API_VERSION']
+
+print('pcs property set stonith-enabled=false')
+
+# To make the below working os_auth_url must be http://192.0.2.1:5000/v3
+#auth = v3.Password(auth_url=os_auth_url,
+#                   username=os_username,
+#                   password=os_password,
+#{% if release in [ 'liberty', 'mitaka' ] %}
+#                   tenant_name=os_tenant_name,
+#{% else %}
+#                   project_name=os_tenant_name,
+#{% endif %}
+#                   user_domain_id='default',
+#                   project_domain_id='default')
+
+auth = v2.Password(auth_url=os_auth_url, username=os_username, password=os_password, tenant_name=os_tenant_name)
+
+sess = session.Session(auth=auth)
+nt = client.Client("2.1", session=sess)
+
+for instance in nt.servers.list():
+ for node in data["nodes"]:
+  if (node["mac"][0] == instance.addresses['ctlplane'][0]['OS-EXT-IPS-MAC:mac_addr'] and (('controller' in instance.name and fence_devices in ['controllers','all']) or ('compute' in instance.name and fence_devices in ['computes','all']))):
+   print('pcs stonith delete ipmilan-{} || /bin/true'.format(instance.name))
+   print('pcs stonith create ipmilan-{} fence_ipmilan pcmk_host_list="{}" ipaddr="{}" login="{}" passwd="{}" lanplus="true" delay=20 op monitor interval=60s'.format(instance.name,instance.name,node["pm_addr"],node["pm_user"],node["pm_password"]))
+   print('pcs location ipmilan-{} avoids {}'.format(instance.name,instance.name))
+
+print('pcs property set stonith-enabled=true')
+
+jdata.close()

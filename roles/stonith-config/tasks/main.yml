@@ -1,0 +1,26 @@
+---
+- name: Load the STONITH creation script on the undercloud
+  template:
+    src: "{{ create_stonith_python_script }}"
+    dest: "{{ working_dir }}/create_stonith_from_instackenv.py"
+    mode: 0755
+
+- name: Generate STONITH script
+  shell: |
+    source {{ working_dir }}/stackrc
+    {{ working_dir }}/create_stonith_from_instackenv.py {{ instack_env_file }} {{ stonith_devices }}
+  register: stonith_script
+
+- name: Create the STONITH script on the overcloud
+  lineinfile:
+    destfile: "{{ overcloud_working_dir }}/create-stonith.sh"
+    line: "{{ stonith_script.stdout }}"
+    create: yes
+    mode: 0755
+  delegate_to: overcloud-controller-0
+
+- name: Execute STONITH script
+  become: true
+  delegate_to: overcloud-controller-0
+  shell: >
+    {{ overcloud_working_dir }}/create-stonith.sh &> create_stonith.log

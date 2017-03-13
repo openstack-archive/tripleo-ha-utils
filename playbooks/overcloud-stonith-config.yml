@@ -1,0 +1,7 @@
+---
+
+- name:  Configure STONITH for all the hosts on the overcloud
+  hosts: undercloud
+  gather_facts: no
+  roles:
+    - stonith-config
