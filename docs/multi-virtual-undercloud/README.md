@@ -12,20 +12,20 @@ Requirements
 **Physical switches**
 
 The switch(es) must support VLAN tagging and all the ports must be configured in
-trunk, so that the dedicated network interface on the physical host (in the 
+trunk, so that the dedicated network interface on the physical host (in the
 examples the secondary interface, eth1) is able to offer PXE and dhcp to all the
 overcloud machines via undercloud virtual machine's bridged interface.
 
 **Host hardware**
 
-The main requirement to make this kind of setup working is to have a host 
+The main requirement to make this kind of setup working is to have a host
 powerful enough to run virtual machines with at least 16GB of RAM and 8 cpus.
 The more power you have, the more undercloud machines you can spawn without
 having impact on performances.
 
 **Host Network topology**
 
-Host is reachable via ssh from the machine launching quickstart and configured 
+Host is reachable via ssh from the machine launching quickstart and configured
 with two main network interfaces:
 
 - **eth0**: bridged on **br0**, pointing to LAN (underclouds will own an IP to
@@ -33,14 +33,14 @@ with two main network interfaces:
 - **eth1**: connected to the dedicated switch that supports all the VLANs that
   will be used in the deployment;
 
-Over eth1, for each undercloud virtual machine two VLAN interfaces are created, 
+Over eth1, for each undercloud virtual machine two VLAN interfaces are created,
 with associated bridges:
 
-- **Control plane network bridge** (i.e. br2100) built over VLAN interface (i.e. 
-  eth1.2100) that will be eth1 on the undercloud virtual machine, used by 
+- **Control plane network bridge** (i.e. br2100) built over VLAN interface (i.e.
+  eth1.2100) that will be eth1 on the undercloud virtual machine, used by
   TripleO as br-ctlplane;
-- **External network bridge** (i.e. br2105) built over VLAN interface (i.e. 
-  eth1.2105) that will be eth2 on the undercloud virtual machine, used by 
+- **External network bridge** (i.e. br2105) built over VLAN interface (i.e.
+  eth1.2105) that will be eth2 on the undercloud virtual machine, used by
   TripleO as external network device;
 
 ![network-topology](./multi-virtual-undercloud_network-topology.png "Multi Virtual Undercloud - Network Topology")
@@ -48,14 +48,14 @@ with associated bridges:
 Quickstart configuration
 ------------------------
 
-Virtual undercloud machine is treated as a baremetal one and the Quickstart 
+Virtual undercloud machine is treated as a baremetal one and the Quickstart
 command relies on the baremetal undercloud role, and its playbook.
 This means that any playbook similar to [baremetal-undercloud.yml](https://github.com/openstack/tripleo-quickstart-extras/blob/master/playbooks/baremetal-undercloud.yml "Baremetal undercloud playbook") should be okay.
 
 The configuration file has two specific sections that needs attention:
 
 - Additional interface for external network to route overcloud traffic:
-  
+
   ```yaml
   undercloud_networks:
      external:
@@ -64,30 +64,30 @@ The configuration file has two specific sections that needs attention:
        device_type: ethernet
        device_name: eth2
   ```
-  
-  **NOTE:** in this configuration eth2 is acting also as a default router for 
+
+  **NOTE:** in this configuration eth2 is acting also as a default router for
   the external network.
 
 - Baremetal provision script, which will be an helper for the
   [multi-virtual-undercloud.sh](./multi-virtual-undercloud.sh) script on the <VIRTHOST>:
-  
+
   ```yaml
    baremetal_provisioning_script: "/path/to/multi-virtual-undercloud-provisioner.sh <VIRTHOST> <DISTRO> <UNDERCLOUD-NAME> <UNDERCLOUD IP> <UNDERCLOUD NETMASK> <UNDERCLOUD GATEWAY> <CTLPLANEV LAN> <EXTERNAL NETWORK VLAN>"
   ```
-  
-  The supported parameters, with the exception of VIRTHOST, are the same ones 
+
+  The supported parameters, with the exception of VIRTHOST, are the same ones
   that are passed to the script that lives (and runs) on the VIRTHOST,
   *multi-virtual-undercloud.sh*.
-  This helper script launches the remote command on VIRTHOST host and ensures 
+  This helper script launches the remote command on VIRTHOST host and ensures
   that the machine gets reachable via ssh before proceeding.
 
 The multi virtual undercloud script
 -----------------------------------
 
-The [multi-virtual-undercloud.sh](./multi-virtual-undercloud.sh) script is 
+The [multi-virtual-undercloud.sh](./multi-virtual-undercloud.sh) script is
 placed on the VIRTHOST and needs these parameters:
 
-1. **DISTRO**: this must be the name (without extension) of one of the images 
+1. **DISTRO**: this must be the name (without extension) of one of the images
    present inside the */images* dir on the VIRTHOST;
 2. **VMNAME**: the name of the undercloud virtual machine (the name that will be
    used by libvirt);
@@ -107,7 +107,7 @@ The script's actions are basically:
    installation, it fix size, network interfaces, packages and ssh keys;
 3. Create and launch the virtual undercloud machine;
 
-**Note**: on the VIRTHOST there must exist an */images* directory containing 
+**Note**: on the VIRTHOST there must exist an */images* directory containing
 images suitable for the deploy.
 Having this directory structure:
 
@@ -142,8 +142,8 @@ this:
   $VIRTHOST
 ```
 
-So nothing different from a normal quickstart deploy command line, the 
-difference here is made by the config.yml as described above, with its provision 
+So nothing different from a normal quickstart deploy command line, the
+difference here is made by the config.yml as described above, with its provision
 script.
 
 Conclusions
@@ -152,12 +152,12 @@ Conclusions
 This approach can be considered useful in testing multi environments with
 TripleO for three reasons:
 
-* It is *fast*: it takes the same time to install the undercloud but less to 
+* It is *fast*: it takes the same time to install the undercloud but less to
   provide it, since you don’t have to wait the physical undercloud provision;
-* It is *isolated*: using VLANs to separate the traffic keeps each environment 
+* It is *isolated*: using VLANs to separate the traffic keeps each environment
   completely isolated from the others;
-* It is *reliable*: you can have the undercloud on a shared storage and think 
-  about putting the undercloud vm in HA, live migrating it with libvirt, 
+* It is *reliable*: you can have the undercloud on a shared storage and think
+  about putting the undercloud vm in HA, live migrating it with libvirt,
   pacemaker, whatever...
 
 There are no macroscopic cons, except for the initial configuration on the

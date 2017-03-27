@@ -1,15 +1,9 @@
-Team and repository tags
-========================
+Utility roles and docs for tripleo-quickstart
+=============================================
 
-[![Team and repository tags](http://governance.openstack.org/badges/tripleo-quickstart-extras.svg)](http://governance.openstack.org/reference/tags/index.html)
-
-<!-- Change things from this point on -->
-
-Extra roles for tripleo-quickstart
-==================================
-
-These Ansible role are extending the functionality of tripleo-quickstart to do
-end-to-end deployment and testing of TripleO.
+These Ansible roles are a set of useful tools to be used on top of TripleO
+deployments. They can be used together with tripleo-quickstart (and
+[tripleo-quickstart-extras](https://github.com/openstack/tripleo-quickstart-extras).
 
 The documentation of each role is located in the individual role folders, and
 general usage information is in the [tripleo-quickstart

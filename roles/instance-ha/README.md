@@ -9,7 +9,7 @@ Requirements
 ------------
 
 This role must be used with a deployed TripleO environment, so you'll need a
-working directory of tripleo-quickstart with the following files:
+working directory of tripleo-quickstart or in any case these files available:
 
 - **hosts**: which will contain all the hosts used in the deployment;
 - **ssh.config.ansible**: which will have all the ssh data to connect to the
@@ -24,9 +24,9 @@ Instance HA
 -----------
 
 Instance HA is a feature that gives a certain degree of high-availability to the
-instances spawned by an OpenStack deployment. Namely, if a compute node on which an
-instance is running breaks for whatever reason, this configuration will spawn the
-instances that were running on the broken node onto a functioning one.
+instances spawned by an OpenStack deployment. Namely, if a compute node on which
+an instance is running breaks for whatever reason, this configuration will spawn
+the instances that were running on the broken node onto a functioning one.
 This role automates are all the necessary steps needed to configure Pacemaker
 cluster to support this functionality. A typical cluster configuration on a
 clean stock **newton** (or **osp10**) deployment is something like this:
@@ -156,7 +156,8 @@ Where:
     [defaults]
     roles_path = /path/to/tripleo-quickstart-utils/roles
 
-**hosts** file must be configured with two *controller* and *compute* sections like these:
+**hosts** file must be configured with two *controller* and *compute* sections
+like these:
 
     undercloud ansible_host=undercloud ansible_user=stack ansible_private_key_file=/path/to/id_rsa_undercloud
     overcloud-novacompute-1 ansible_host=overcloud-novacompute-1 ansible_user=heat-admin ansible_private_key_file=/path/to/id_rsa_overcloud
@@ -184,7 +185,8 @@ Where:
     overcloud-controller-1
     overcloud-controller-0
 
-**ssh.config.ansible** can *optionally* contain specific per-host connection options, like these:
+**ssh.config.ansible** can *optionally* contain specific per-host connection
+options, like these:
 
     ...
     ...
