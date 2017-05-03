@@ -1,0 +1,3 @@
+# Test: Wait cluster start and look for failed actions
+echo "$(date) - Waiting for cluster start and checking for failed resources:"
+wait_cluster_start

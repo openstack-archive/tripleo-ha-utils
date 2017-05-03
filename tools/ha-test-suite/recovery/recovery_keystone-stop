@@ -1,0 +1,10 @@
+# Recovery: Enable openstack-keystone and check for failed actions
+
+echo "$(date) * Step 1: enable openstack-keystone resource"
+play_on_resources "enable" "openstack-keystone-clone"
+
+echo "$(date) - Checking for Stopped resources:"
+wait_cluster_start
+
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions

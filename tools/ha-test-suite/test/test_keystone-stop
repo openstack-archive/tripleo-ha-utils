@@ -1,0 +1,7 @@
+# Test: Stop openstack-keystone and look for failed actions
+
+echo "$(date) * Step 1: disable openstack-keystone resource"
+play_on_resources "disable" "openstack-keystone-clone"
+   
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions

@@ -1,0 +1,7 @@
+# Recovery: Enable mongo and check for failed actions
+
+echo "$(date) * Step 1: enable mongo"
+play_on_resources "enable" "mongo"
+
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions

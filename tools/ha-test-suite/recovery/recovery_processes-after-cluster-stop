@@ -1,0 +1,10 @@
+# Recovery: Start cluster again
+
+echo "$(date) * Step 1: start the cluster"
+sudo pcs cluster start --all
+
+echo "$(date) * Step 2: Waiting all resources to start"
+wait_cluster_start
+
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions

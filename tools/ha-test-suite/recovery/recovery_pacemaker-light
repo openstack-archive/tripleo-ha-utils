@@ -1,0 +1,13 @@
+# Recovery: Enable all systemd and core resources, cleanup failed actions
+
+echo "$(date) * Step 1: enable core resources"
+play_on_resources "enable" "$OVERCLOUD_CORE_RESOURCES"
+
+echo "$(date) * Step 2: enable all the systemd resources"
+play_on_resources "enable" "$OVERCLOUD_SYSTEMD_RESOURCES"
+
+echo "$(date) * Step 3: Waiting all resources to start"
+wait_cluster_start
+
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions

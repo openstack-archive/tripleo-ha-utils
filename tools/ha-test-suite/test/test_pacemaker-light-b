@@ -1,0 +1,19 @@
+# Test: Stop Galera and Rabbitmq, stop every systemd resource, Start every systemd resource
+
+echo "$(date) * Step 1: disable core services"
+play_on_resources "disable" "$OVERCLOUD_CORE_RESOURCES"
+   
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions
+   
+echo "$(date) * Step 2: disable all the systemd resources"
+play_on_resources "disable" "$OVERCLOUD_SYSTEMD_RESOURCES"
+   
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions
+   
+echo "$(date) * Step 3: enable all the systemd resources"
+play_on_resources "enable" "$OVERCLOUD_SYSTEMD_RESOURCES"
+   
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions
