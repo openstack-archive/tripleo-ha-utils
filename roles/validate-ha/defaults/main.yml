@@ -1,7 +1,8 @@
 ---
 
+working_dir: "/home/stack"                                                       
+validate_ha_logs_dir: "{{ working_dir }}/validate_ha_logs"                       
 overcloud_working_dir: "/home/heat-admin"
-validate_ha_logs_dir: "{{ working_dir }}/validate_ha_logs"
 
 environment_file: environment.j2
 apply_workarounds: false

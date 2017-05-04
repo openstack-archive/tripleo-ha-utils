@@ -16,11 +16,13 @@ undercloud and all the overcloud nodes;
 - A **config file** with a definition for the floating network (which will be
 used to test HA instances), like this one:
 
-      public_physical_network: "floating"
-      floating_ip_cidr: "10.0.0.0/24"
-      public_net_pool_start: "10.0.0.191"
-      public_net_pool_end: "10.0.0.198"
-      public_net_gateway: "10.0.0.254"
+```yaml
+public_physical_network: "floating"
+floating_ip_cidr: "10.0.0.0/24"
+public_net_pool_start: "10.0.0.191"
+public_net_pool_end: "10.0.0.198"
+public_net_gateway: "10.0.0.254"
+```
 
 HA tests
 --------
@@ -51,18 +53,20 @@ something fails
 It is also possible to omit (or add) tests not made for the specific release,
 using the above vars, like in this example:
 
-    ./quickstart.sh \
-      --retain-inventory \
-      --ansible-debug \
-      --no-clone \
-      --playbook overcloud-validate-ha.yml \
-      --working-dir /path/to/workdir/ \
-      --config /path/to/config.yml \
-      --extra-vars test_ha_failed_actions=false \
-      --extra-vars test_ha_ng_a=true \
-      --release mitaka \
-      --tags all \
-      <VIRTHOST>
+```console
+./quickstart.sh \
+  --retain-inventory \
+  --ansible-debug \
+  --no-clone \
+  --playbook overcloud-validate-ha.yml \
+  --working-dir /path/to/workdir/ \
+  --config /path/to/config.yml \
+  --extra-vars test_ha_failed_actions=false \
+  --extra-vars test_ha_ng_a=true \
+  --release mitaka \
+  --tags all \
+  <VIRTHOST>
+```
 
 In this case we will not check for failed actions (which is test that otherwise
 will be done in mitaka) and we will force the execution of the "ng_a" test
@@ -77,14 +81,16 @@ Quickstart invocation
 
 Quickstart can be invoked like this:
 
-    ./quickstart.sh \
-       --retain-inventory \
-       --playbook overcloud-validate-ha.yml \
-       --working-dir /path/to/workdir \
-       --config /path/to/config.yml \
-       --release <RELEASE> \
-       --tags all \
-       <HOSTNAME or IP>
+```console
+./quickstart.sh \
+   --retain-inventory \
+   --playbook overcloud-validate-ha.yml \
+   --working-dir /path/to/workdir \
+   --config /path/to/config.yml \
+   --release <RELEASE> \
+   --tags all \
+   <HOSTNAME or IP>
+```
 
 Basically this command:
 
@@ -103,19 +109,127 @@ deploys the environment (see
 you need to export *ANSIBLE_SSH_ARGS* with the path of the *ssh.config.ansible*
 file, like this:
 
-    export ANSIBLE_SSH_ARGS="-F /path/to/quickstart/workdir/ssh.config.ansible"
+```console
+export ANSIBLE_SSH_ARGS="-F /path/to/quickstart/workdir/ssh.config.ansible"
+```
+
+Using the playbook on an existing TripleO environment
+-----------------------------------------------------
+
+It is possible to execute the playbook on an environment not created via TriplO
+quickstart, by cloning via git the tripleo-quickstart-utils repo:
+
+```console
+$ git clone https://gitlab.com/redhat-openstack/tripleo-quickstart-utils
+```
+
+then it's just a matter of declaring three environment variables, pointing to
+three files:
+
+```console
+$ export ANSIBLE_CONFIG=/path/to/ansible.cfg
+$ export ANSIBLE_INVENTORY=/path/to/hosts
+$ export ANSIBLE_SSH_ARGS="-F /path/to/ssh.config.ansible"
+```
+
+Where:
+
+**ansible.cfg** must contain at least these lines:
+
+```console
+[defaults]
+roles_path = /path/to/tripleo-quickstart-utils/roles
+```
+
+**hosts** file must be configured with two *controller* and *compute* sections
+like these:
+
+```console
+undercloud ansible_host=undercloud ansible_user=stack ansible_private_key_file=/path/to/id_rsa_undercloud
+overcloud-novacompute-1 ansible_host=overcloud-novacompute-1 ansible_user=heat-admin ansible_private_key_file=/path/to/id_rsa_overcloud
+overcloud-novacompute-0 ansible_host=overcloud-novacompute-0 ansible_user=heat-admin ansible_private_key_file=/path/to/id_rsa_overcloud
+overcloud-controller-2 ansible_host=overcloud-controller-2 ansible_user=heat-admin ansible_private_key_file=/path/to/id_rsa_overcloud
+overcloud-controller-1 ansible_host=overcloud-controller-1 ansible_user=heat-admin ansible_private_key_file=/path/to/id_rsa_overcloud
+overcloud-controller-0 ansible_host=overcloud-controller-0 ansible_user=heat-admin ansible_private_key_file=/path/to/id_rsa_overcloud
+
+[compute]
+overcloud-novacompute-1
+overcloud-novacompute-0
+
+[undercloud]
+undercloud
+
+[overcloud]
+overcloud-novacompute-1
+overcloud-novacompute-0
+overcloud-controller-2
+overcloud-controller-1
+overcloud-controller-0
+
+[controller]
+overcloud-controller-2
+overcloud-controller-1
+overcloud-controller-1
+overcloud-controller-0
+```
+
+**ssh.config.ansible** can *optionally* contain specific per-host connection
+options, like these:
+
+```console
+...
+...
+Host overcloud-controller-0
+    ProxyCommand ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o ConnectTimeout=60 -F /path/to/ssh.config.ansible undercloud -W 192.168.24.16:22
+    IdentityFile /path/to/id_rsa_overcloud
+    User heat-admin
+    StrictHostKeyChecking no
+    UserKnownHostsFile=/dev/null
+...
+...
+```
+
+In this example to connect to overcloud-controller-0 ansible will use
+undercloud ad a ProxyHost
+
+With this setup in place is then possible to launch the playbook:
+
+```console
+$ ansible-playbook -vvvv /path/to/tripleo-quickstart-utils/playbooks/overcloud-validate-ha.yml \
+  -e release=ocata \
+  -e local_working_dir=/home/rasca/workdir/had-00/workdir \
+  -e public_physical_network="floating" \
+  -e floating_ip_cidr="10.0.0.0/24" \
+  -e public_net_pool_start="10.0.0.191" \
+  -e public_net_pool_end="10.0.0.198" \
+  -e public_net_gateway="10.0.0.254"
+```
+
+**Note**
+
+The variables above can be declared inside a config.yml file that can be passed
+to the ansible-playbook command like this:
+
+```console
+$ ansible-playbook -vvvv /path/to/tripleo-quickstart-utils/playbooks/overcloud-validate-ha.yml \
+  -e @/home/rasca/workdir/had-00/config.yml
+```
+
+The result will be the same.
 
 Example Playbook
 ----------------
 
 The main playbook couldn't be simpler:
 
-    ---
-    - name:  Validate overcloud HA status
-      hosts: localhost
-      gather_facts: no
-      roles:
-        - tripleo-overcloud-validate-ha
+```yaml
+---
+- name:  Validate overcloud HA status
+  hosts: localhost
+  gather_facts: no
+  roles:
+    - tripleo-overcloud-validate-ha
+```
 
 But it could also be used at the end of a deployment, like in this file
 [baremetal-undercloud-validate-ha.yml](https://github.com/openstack/tripleo-quickstart-extras/blob/master/playbooks/baremetal-undercloud-validate-ha.yml).
