@@ -1,0 +1,43 @@
+# Test: Stop mongo resource, check related systemd resources are fine
+
+echo "$(date) * Step 1: disable mongo"
+play_on_resources "disable" "mongo"
+   
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions
+
+echo "$(date) * Step 2: check resource status"
+# Define related resources
+OVERCLOUD_RESOURCES="openstack-aodh-evaluator openstack-aodh-listener openstack-aodh-notifier openstack-ceilometer-central.service openstack-ceilometer-collector.service openstack-ceilometer-notification.service"
+# Define number of minutes to look for status
+MINUTES=10
+# Cycling for $MINUTES minutes polling every minute the status of the resources
+echo "$(date) - Cycling for 10 minutes polling every minute the status of the resources"
+i=0
+while [ $i -lt $MINUTES ]
+ do
+  # Wait a minute
+  sleep 60
+  echo "$(date) - Polling..."
+  for resource in $OVERCLOUD_RESOURCES
+   do
+    echo -n "$resource -> "
+    # Check if the resource is active for the system
+    systemctl is-active $resource
+    if [ $? -ne 0 ]
+     then
+      # Show status of the resource
+      echo "Error! Resource $resource is not active anymore."
+      systemctl status $resource
+      # Check in any case cluster's failed actions
+      echo "$(date) - List of cluster's failed actions:"
+      check_failed_actions
+      # Now exit with an error
+      exit 1
+    fi
+   done
+  let "i++"
+ done
+
+# If we are here, test was successful
+echo "$(date) - Test was successful"

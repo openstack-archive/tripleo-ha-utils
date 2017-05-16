@@ -1,0 +1,10 @@
+# Test: Check active processes after cluster stop
+
+echo "$(date) * Step 1: checking actual process status"
+check_resources_process_status
+   
+echo "$(date) * Step 2: stopping cluster"
+sudo pcs cluster stop --all
+   
+echo "$(date) * Step 3: checking actual process status"
+check_resources_process_status

@@ -1,0 +1,13 @@
+# Recovery: Enable all systemd and core resources, cleanup failed actions
+
+echo "$(date) * Step 1: enable all the cluster resources"
+play_on_resources "enable" "$OVERCLOUD_RESOURCES"
+
+echo "$(date) * Step 2: Cleaning up failed resources"
+sudo pcs status | sed -n -e '/Failed Actions:/,/^$/p' | egrep 'OCF_TIMEOUT|not running' | awk '{print $2}' | cut -f1 -d_ | sort | uniq | while read RES; do echo "Cleaning $RES"; sudo pcs resource cleanup $RES; done
+
+echo "$(date) * Step 3: Waiting all resources to start"
+wait_cluster_start
+
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions

@@ -1,0 +1,22 @@
+# Test: Stop Galera and Rabbitmq, wait 20 minutes to see if something fails
+
+echo "$(date) * Step 1: disable core services"
+play_on_resources "disable" "$OVERCLOUD_CORE_RESOURCES"
+   
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions
+   
+echo "$(date) * Step 2: poll every minute for twenty minutes the status of the resources"
+for i in $(seq 1 20)
+ do
+  check_failed_actions
+  if [ $? -ne 0 ]
+   then
+    echo "Errors found, test is over."
+    break
+  fi
+  sleep 60
+ done
+   
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions

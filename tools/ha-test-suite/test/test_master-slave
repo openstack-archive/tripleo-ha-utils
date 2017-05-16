@@ -1,0 +1,7 @@
+# Test: Stop master slave resources (galera and redis), all the resources should come down
+
+echo "$(date) * Step 1: disable galera, redis and rabbitmq"
+play_on_resources "disable" "$OVERCLOUD_CORE_RESOURCES"
+   
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions

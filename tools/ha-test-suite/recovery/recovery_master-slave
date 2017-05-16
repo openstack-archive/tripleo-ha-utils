@@ -1,0 +1,7 @@
+# Recovery: Enable master slave resources (galera and redis), all the resources should come up
+
+echo "$(date) * Step 1: enable galera, redis and rabbitmq"
+play_on_resources "enable" "$OVERCLOUD_CORE_RESOURCES"
+
+echo "$(date) - List of cluster's failed actions:"
+check_failed_actions
