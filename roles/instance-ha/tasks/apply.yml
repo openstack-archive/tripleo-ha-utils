@@ -1,0 +1,306 @@
+---
+- name: Disable openstack-nova-compute on compute
+  service:
+    name: openstack-nova-compute
+    state: stopped
+    enabled: no
+  become: yes
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups['compute'] }}"
+
+- name: Disable neutron-openvswitch-agent on compute
+  service:
+    name: neutron-openvswitch-agent
+    state: stopped
+    enabled: no
+  become: yes
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups['compute'] }}"
+  when: release == 'liberty' or release == 'mitaka'
+
+- name: Disable neutron-openvswitch-agent on compute
+  service:
+    name: openstack-ceilometer-compute
+    state: stopped
+    enabled: no
+  become: yes
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups['compute'] }}"
+  when: release == 'liberty' or release == 'mitaka'
+
+- name: Disable libvirtd on compute
+  become: yes
+  service:
+    name: libvirtd
+    state: stopped
+    enabled: no
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups['compute'] }}"
+  when: release == 'liberty' or release == 'mitaka'
+
+- name: Generate authkey for remote pacemaker
+  shell: |
+    dd if=/dev/urandom of="/tmp/authkey" bs=4096 count=1
+  delegate_to: localhost
+
+- name: Make sure pacemaker config dir exists
+  become: yes
+  file:
+     path: /etc/pacemaker
+     state: directory
+     mode: 0750
+     group: "haclient"
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups['controller'] }}"
+    - "{{ groups['compute'] }}"
+
+- name: Copy autkey on all the overcloud nodes
+  become: yes
+  copy:
+     src: /tmp/authkey
+     dest: /etc/pacemaker/authkey
+     mode: 0640
+     group: "haclient"
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups['controller'] }}"
+    - "{{ groups['compute'] }}"
+
+- name: Remove authkey from local dir
+  file:
+     path: /tmp/authkey
+     state: absent
+  delegate_to: localhost
+
+- name: Enable iptables traffic for pacemaker_remote
+  become: yes
+  shell: |
+    iptables -I INPUT -p tcp --dport 3121 -j ACCEPT
+    /sbin/service iptables save
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups['controller'] }}"
+    - "{{ groups['compute'] }}"
+
+- name: Start pacemaker remote service on compute nodes
+  become: yes
+  service:
+    name: pacemaker_remote
+    enabled: yes
+    state: started
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups['compute'] }}"
+
+- name: Get the overcloudrc file
+  shell: |
+    cat {{ working_dir }}/overcloudrc
+  register: overcloudrc
+
+- name: Copy overcloudrc file on overcloud-controller-0
+  lineinfile:
+    destfile: "{{ overcloud_working_dir }}/overcloudrc"
+    line: "{{ overcloudrc.stdout }}"
+    create: yes
+    mode: 0644
+  delegate_to: overcloud-controller-0
+
+- name: Get environment vars from overcloudrc
+  delegate_to: "overcloud-controller-0"
+  shell: |
+     grep OS_USERNAME {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_USERNAME=//g'
+  register: "OS_USERNAME"
+
+- name: Get environment vars from overcloudrc
+  delegate_to: "overcloud-controller-0"
+  shell: |
+     grep OS_PASSWORD {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_PASSWORD=//g'
+  register: "OS_PASSWORD"
+
+- name: Get environment vars from overcloudrc
+  delegate_to: "overcloud-controller-0"
+  shell: |
+     grep OS_AUTH_URL {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_AUTH_URL=//g'
+  register: "OS_AUTH_URL"
+
+- name: Get environment vars from overcloudrc
+  delegate_to: "overcloud-controller-0"
+  shell: |
+     grep -E 'OS_PROJECT_NAME|OS_TENANT_NAME' {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_.*_NAME=//g'
+  register: "OS_TENANT_NAME"
+
+- block:
+    - name: Create resource nova-evacuate
+      shell: |
+        pcs resource create nova-evacuate ocf:openstack:NovaEvacuate auth_url=$OS_AUTH_URL username=$OS_USERNAME password=$OS_PASSWORD tenant_name=$OS_TENANT_NAME no_shared_storage=1
+
+    - name: Create pacemaker constraints to start VIP resources before nova-evacuate
+      shell: |
+          for i in $(pcs status | grep IP | awk '{ print $1 }')
+            do pcs constraint order start $i then nova-evacuate
+          done
+
+    - name: Create pacemaker constraints to start openstack services before nova-evacuate
+      shell: "pcs constraint order start {{ item }} then nova-evacuate require-all=false"
+      with_items:
+          - openstack-glance-api-clone
+          - neutron-metadata-agent-clone
+          - openstack-nova-conductor-clone
+      when: release == 'liberty' or release == 'mitaka'
+
+    - name: Disable keystone resource
+      shell: "pcs resource disable openstack-keystone --wait=900"
+      when: release == 'liberty'
+
+    # Keystone resource was replaced by openstack-core resource in RHOS9
+    - name: Disable openstack-core resource
+      shell: "pcs resource disable openstack-core --wait=900"
+      when: release == 'mitaka'
+
+    - name: Set controller pacemaker property on controllers
+      shell: "pcs property set --node {{ item }} osprole=controller"
+      with_items: "{{ groups['controller'] }}"
+
+    - name: Get stonith devices
+      shell: "pcs stonith | awk '{print $1}' | tr '\n' ' '"
+      register: stonithdevs
+
+    - name: Setup stonith devices
+      shell: |
+          for i in $(sudo cibadmin -Q --xpath //primitive --node-path | awk -F "id='" '{print $2}' | awk -F "'" '{print $1}' | uniq); do
+            found=0
+            if [ -n "{{ stonithdevs.stdout }}" ]; then
+              for x in {{ stonithdevs.stdout }}; do
+                if [ "$x" == "$i" ]; then
+                  found=1
+                fi
+              done
+            fi
+            if [ $found = 0 ]; then
+              sudo pcs constraint location $i rule resource-discovery=exclusive score=0 osprole eq controller
+            fi
+          done
+
+    - name: Create compute pacemaker resources and constraints
+      shell: |
+          pcs resource create nova-compute-checkevacuate ocf:openstack:nova-compute-wait auth_url=$OS_AUTH_URL username=$OS_USERNAME password=$OS_PASSWORD tenant_name=$OS_TENANT_NAME domain=localdomain op start timeout=300 --clone interleave=true --disabled --force
+          pcs constraint location nova-compute-checkevacuate-clone rule resource-discovery=exclusive score=0 osprole eq compute
+          pcs resource create nova-compute systemd:openstack-nova-compute op start timeout=60s --clone interleave=true --disabled --force
+          pcs constraint location nova-compute-clone rule resource-discovery=exclusive score=0 osprole eq compute
+          pcs constraint order start nova-compute-checkevacuate-clone then nova-compute-clone require-all=true
+          pcs constraint order start nova-compute-clone then nova-evacuate require-all=false
+
+    - name: Create compute pacemaker resources and constraints
+      shell: |
+          pcs resource create neutron-openvswitch-agent-compute systemd:neutron-openvswitch-agent --clone interleave=true --disabled --force
+          pcs constraint location neutron-openvswitch-agent-compute-clone rule resource-discovery=exclusive score=0 osprole eq compute
+          pcs resource create libvirtd-compute systemd:libvirtd --clone interleave=true --disabled --force
+          pcs constraint location libvirtd-compute-clone rule resource-discovery=exclusive score=0 osprole eq compute
+          pcs constraint order start neutron-openvswitch-agent-compute-clone then libvirtd-compute-clone
+          pcs constraint colocation add libvirtd-compute-clone with neutron-openvswitch-agent-compute-clone
+          pcs resource create ceilometer-compute systemd:openstack-ceilometer-compute --clone interleave=true --disabled --force
+          pcs constraint location ceilometer-compute-clone rule resource-discovery=exclusive score=0 osprole eq compute
+          pcs constraint order start libvirtd-compute-clone then ceilometer-compute-clone
+          pcs constraint colocation add ceilometer-compute-clone with libvirtd-compute-clone
+          pcs constraint order start libvirtd-compute-clone then nova-compute-clone
+          pcs constraint colocation add nova-compute-clone with libvirtd-compute-clone
+      when: release == 'liberty' or release == 'mitaka'
+
+    - name: Create pacemaker constraint for neutron-server, nova-conductor and ceilometer-notification
+      shell: |
+          pcs constraint order start neutron-server-clone then neutron-openvswitch-agent-compute-clone require-all=false
+          pcs constraint order start openstack-ceilometer-notification-clone then ceilometer-compute-clone require-all=false
+          pcs constraint order start openstack-nova-conductor-clone then nova-compute-checkevacuate-clone require-all=false
+      when: release == 'liberty' or release == 'mitaka'
+
+    - name: Check if ipmi exists for all compute nodes
+      shell: |
+          sudo pcs stonith show ipmilan-{{ item }}
+      with_items: "{{ groups['compute'] }}"
+
+    - name: Create fence-nova pacemaker resource
+      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 no-shared-storage=False --force"
+
+    - name: Create pacemaker constraint for fence-nova to fix it on controller node and set resource-discovery never
+      shell: "pcs constraint location fence-nova rule resource-discovery=never score=0 osprole eq controller"
+
+    - name: Create pacemaker constraint for fence-nova to start after galera
+      shell: "pcs constraint order promote galera-master then fence-nova require-all=false"
+
+    - name: Create nova-compute order constraint on fence-nova
+      shell: "pcs constraint order start fence-nova then nova-compute-clone"
+
+    - name: Set cluster recheck interval to 1 minute
+      shell: "pcs property set cluster-recheck-interval=1min"
+
+    - name: Create pacemaker remote resource on compute nodes
+      shell: "pcs resource create {{ item }} ocf:pacemaker:remote reconnect_interval=240 op monitor interval=20"
+      with_items: "{{ groups['compute'] }}"
+
+    - name: Set osprole for compute nodes
+      shell: "pcs property set --node {{ item }} osprole=compute"
+      with_items: "{{ groups['compute'] }}"
+
+    - name: Add pacemaker stonith devices of compute nodes to level 1
+      shell: "pcs stonith level add 1 {{ item }} ipmilan-{{ item }},fence-nova"
+      with_items: "{{ groups['compute'] }}"
+
+    - name: Enable keystone resource
+      shell: "pcs resource enable openstack-keystone"
+      when: release == 'liberty'
+
+    - name: Enable openstack-core resource
+      shell: "pcs resource enable openstack-core"
+      when: release == 'mitaka'
+
+    - name: Wait for httpd service to be started
+      shell: "systemctl show httpd --property=ActiveState"
+      register: httpd_status_result
+      until: httpd_status_result.stdout.find('inactive') == -1 and httpd_status_result.stdout.find('activating') == -1
+      retries: 30
+      delay: 10
+      when: release != 'liberty' and release != 'mitaka'
+
+    - name: Enable compute nodes resources (nova)
+      shell: "pcs resource enable {{ item }}"
+      with_items:
+          - nova-compute-checkevacuate
+          - nova-compute
+
+    - name: Enable compute nodes resources (others)
+      shell: "pcs resource enable {{ item }}"
+      with_items:
+          - neutron-openvswitch-agent-compute
+          - libvirtd-compute
+          - ceilometer-compute
+      when: release == 'liberty' or release == 'mitaka'
+  environment:
+     OS_USERNAME: "{{ OS_USERNAME.stdout }}"
+     OS_PASSWORD: "{{ OS_PASSWORD.stdout }}"
+     OS_AUTH_URL: "{{ OS_AUTH_URL.stdout }}"
+     OS_TENANT_NAME: "{{ OS_TENANT_NAME.stdout }}"
+  become: yes
+  delegate_to: "overcloud-controller-0"
+
+- name: Cleanup (if any) failed resources
+  shell: |
+     for resource in $(pcs status | sed -n -e '/Failed Actions:/,/^$/p' | egrep 'OCF_|not running|unknown' | awk '{print $2}' | cut -f1 -d_ | sort |uniq)
+      do
+       pcs resource cleanup $resource
+      done
+  become: yes
+  delegate_to: "overcloud-controller-0"
+
+- name: Wait for (if any) failed resources to recover
+  shell: pcs status | sed -n -e '/Failed Actions:/,/^$/p' | egrep 'OCF_|not running|unknown' | awk '{print $2}' | cut -f1 -d_ | sort |uniq
+  register: failed_resources
+  until: failed_resources.stdout != []
+  retries: 10
+  delay: 10
+  become: yes
+  delegate_to: "overcloud-controller-0"
