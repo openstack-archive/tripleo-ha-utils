@@ -4,6 +4,10 @@ overcloud_working_dir: "/home/heat-admin"
 working_dir: "/home/stack"
 instack_env_file: "{{ working_dir }}/instackenv.json"
 
-create_stonith_python_script: create-stonith-from-instackenv.py.j2
-# Can be all, controllers, computes
+config_stonith_python_script: config-stonith-from-instackenv.py.j2
+
+# Can be apply or undo
+stonith_config: "apply"                                                     
+
+# Can be none, all, controllers or computes
 stonith_devices: all

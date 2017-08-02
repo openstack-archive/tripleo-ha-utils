@@ -1,0 +1,60 @@
+################
+# Python imports
+################
+import os
+import json
+import sys
+# The below will be enabled once OS_AUTH_URL=http://192.0.2.1:5000/v3
+#from keystoneauth1.identity import v3
+from keystoneauth1.identity import v2
+from keystoneauth1 import session
+from pprint import pprint
+from novaclient import client
+
+##########################################################
+# Environment variables (need to source before launching):
+##########################################################
+export NOVA_VERSION=1.1
+export OS_PASSWORD=$(sudo hiera admin_password)
+# If v3:
+ export OS_AUTH_URL=http://192.0.2.1:5000/v3
+# else
+ export OS_AUTH_URL=http://192.0.2.1:5000/v2.0
+export OS_USERNAME=admin
+export OS_TENANT_NAME=admin
+export COMPUTE_API_VERSION=1.1
+export OS_NO_CACHE=True
+
+##############
+# JSON format:
+##############
+{ "nodes": [
+{
+  "mac": [
+"b8:ca:3a:66:e3:82"
+  ],
+  "_comment":"host12-rack03.scale.openstack.engineering.redhat.com",
+  "cpu": "",
+  "memory": "",
+  "disk": "",
+  "arch": "x86_64",
+  "pm_type":"pxe_ipmitool",
+  "pm_user":"qe-scale",
+  "pm_password":"d0ckingSt4tion",
+  "pm_addr":"10.1.8.102"
+},
+...
+
+########################################################################
+# To make the below working os_auth_url must be http://192.0.2.1:5000/v3
+########################################################################
+auth = v3.Password(auth_url=os_auth_url,
+                   username=os_username,
+                   password=os_password,
+{% if release in [ 'liberty', 'mitaka' ] %}
+                   tenant_name=os_tenant_name,
+{% else %}
+                   project_name=os_tenant_name,
+{% endif %}
+                   user_domain_id='default',
+                   project_domain_id='default')
