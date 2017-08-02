@@ -65,24 +65,12 @@
             pcs --force resource delete $resourceid
            done
 
-    - name: Erase the status entries corresponding to the compute nodes
-      shell: |
-          cibadmin --delete --xml-text "<node id='{{ item }}'/>"
-          cibadmin --delete --xml-text "<node_state id={{ item }}'/>"
-      with_items:
-        - "{{ groups['compute'] }}"
-
-    - name: Delete pacemaker compute remote resource
-      shell: pcs resource delete {{ item }}
-      with_items: "{{ groups['compute'] }}"
-
-    - name: Delete pacemaker compute remote node
-      shell: crm_node --force --remove {{ item }}
-      with_items: "{{ groups['compute'] }}"
-
-    - name: Delete resource nova-evacuate
-      shell: >
-        pcs resource delete nova-evacuate
+#    - name: Erase the status entries corresponding to the compute nodes
+#      shell: |
+#          cibadmin --delete --xml-text "<node id='{{ item }}'/>"
+#          cibadmin --delete --xml-text "<node_state id={{ item }}'/>"
+#      with_items:
+#        - "{{ groups['compute'] }}"
 
     - name: Remove constraints related to role controller
       shell: |
@@ -186,3 +174,10 @@
   with_items:
     - "{{ groups['controller'] }}"
     - "{{ groups['compute'] }}"
+
+- name: Undo STONITH for compute nodes
+  include_role:                                                                 
+    name: stonith-config
+  vars:                                                                         
+    stonith_config: "undo"
+    stonith_devices: "computes"

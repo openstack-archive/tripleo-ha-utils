@@ -3,5 +3,5 @@
 overcloud_working_dir: "/home/heat-admin"
 working_dir: "/home/stack"
 
-apply_instance_ha: true
-undo_instance_ha: false
+# apply or undo
+instance_ha_config: apply

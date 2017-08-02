@@ -1,4 +1,10 @@
 ---
+- name: Apply STONITH for compute nodes
+  include_role:                                                                 
+    name: stonith-config
+  vars:                                                                         
+    stonith_devices: "computes"
+
 - name: Disable openstack-nova-compute on compute
   service:
     name: openstack-nova-compute
@@ -101,6 +107,12 @@
   shell: |
     cat {{ working_dir }}/overcloudrc
   register: overcloudrc
+
+- name: Remove overcloudrc file on overcloud-controller-0 (if exists)
+  file:
+    path: "{{ overcloud_working_dir }}/overcloudrc"
+    state: absent
+  delegate_to: overcloud-controller-0
 
 - name: Copy overcloudrc file on overcloud-controller-0
   lineinfile:
