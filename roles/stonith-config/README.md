@@ -8,14 +8,7 @@ the hosts that are part of the overcloud.
 Requirements
 ------------
 
-This role must be used with a deployed TripleO environment, so you'll need a
-working directory of tripleo-quickstart or in any case these files available:
-
-- **hosts**: which will contain all the hosts used in the deployment;
-- **ssh.config.ansible**: which will have all the ssh data to connect to the
-undercloud and all the overcloud nodes;
-- **instackenv.json**: which must be present on the undercloud workdir. This
-should be created by the installer;
+The TripleO environment must be prepared as described [here](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/README.md).
 
 STONITH
 -------
@@ -53,60 +46,38 @@ And something like this, depending on how many nodes are there in the overcloud:
 Having all this in place is a requirement for a reliable HA solution and for
 configuring special OpenStack features like [Instance HA](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/roles/instance-ha).
 
-**Note**: by default this role configures STONITH for all the overcloud nodes,
-but it is possible to limitate it just for controllers, or just for computes, by
-setting the **stonith_devices** variable, which by default is set to "all", but
-can also be "*controllers*" or "*computes*".
-
-Quickstart invocation
----------------------
-
-Quickstart can be invoked like this:
-
-    ./quickstart.sh \
-       --retain-inventory \
-       --playbook overcloud-stonith-config.yml \
-       --working-dir /path/to/workdir \
-       --config /path/to/config.yml \
-       --release <RELEASE> \
-       --tags all \
-       <HOSTNAME or IP>
-
-Basically this command:
-
-- **Keeps** existing data on the repo (it's the most important one)
-- Uses the *overcloud-stonith-config.yml* playbook
-- Uses the same custom workdir where quickstart was first deployed
-- Select the specific config file
-- Specifies the release (mitaka, newton, or “master” for ocata)
-- Performs all the tasks in the playbook overcloud-stonith-config.yml
-
-**Important note**
-
-You might need to export *ANSIBLE_SSH_ARGS* with the path of the
-*ssh.config.ansible* file to make the command work, like this:
-
-    export ANSIBLE_SSH_ARGS="-F /path/to/quickstart/workdir/ssh.config.ansible"
+**Note**: by default this role configures STONITH for the controllers nodes,
+but it is possible to configure all the nodes or to limitate it just for
+computes, by setting the **stonith_devices** variable, which by default is set
+to "controllers", but can also be "*all*" or "*computes*".
 
 Limitations
 -----------
 
 The only kind of STONITH devices supported are **for the moment** IPMI.
 
-Example Playbook
-----------------
+Examples on how to ivoke the playbook via ansible
+-------------------------------------------------
 
-The main playbook couldn't be simpler:
+This command line will install the STONITH devices for the controller nodes:
 
-    ---
-    - name:  Configure STONITH for all the hosts on the overcloud
-      hosts: undercloud
-      gather_facts: no
-      roles:
-        - stonith-config
+    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10"
 
-But it could also be used at the end of a deployment, like the validate-ha role
-is used in [baremetal-undercloud-validate-ha.yml](https://github.com/redhat-openstack/tripleo-quickstart-utils/blob/master/playbooks/baremetal-undercloud-validate-ha.yml).
+If a user wants to install the STONITH devices for all the nodes:
+
+    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10" -e stonith_devices="all"
+
+To uninstall the STONITH devices for the controllers:
+
+    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10" -e stonith_action="uninstall"
+
+To uninstall the STONITH devices just for the computes:
+
+    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10" -e stonith_action="uninstall" -e stonith_devices="computes"
+
+The STONITH role supports also "none" as a valid value for *stonith_devices*
+which can become useful when configuring instance HA in an environment already
+configured with STONITH for both controllers and computes.
 
 License
 -------

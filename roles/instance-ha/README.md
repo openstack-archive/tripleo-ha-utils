@@ -2,18 +2,12 @@ instance-ha
 ===========
 
 This role aims to automate all the steps needed to configure instance HA on a
-deployed (via tripleo-quickstart) overcloud environment. For more information
-about Instance HA, see the [IHA Documentation](https://access.redhat.com/documentation/en-us/red_hat_openstack_platform/9/html-single/high_availability_for_compute_instances/)
+deployed TripleO overcloud environment.
 
 Requirements
 ------------
 
-This role must be used with a deployed TripleO environment, so you'll need a
-working directory of tripleo-quickstart or in any case these files available:
-
-- **hosts**: which will contain all the hosts used in the deployment;
-- **ssh.config.ansible**: which will have all the ssh data to connect to the
-  undercloud and all the overcloud nodes;
+The TripleO environment must be prepared as described [here](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/README.md).
 
 **NOTE**: Instance-HA depends on STONITH. This means that all the steps
 performed by this role make sense only if on the overcloud STONITH has been
@@ -100,130 +94,113 @@ configuration will be something like this:
      overcloud-compute-1    (ocf::pacemaker:remote):        Started overcloud-controller-0
      overcloud-compute-0    (ocf::pacemaker:remote):        Started overcloud-controller-1
 
-Since there are a lot of differences from a stock deployment, understanding
-the way Instance HA works can be quite hard, so additional information around
-Instance HA is available at [this link](https://github.com/rscarazz/tripleo-director-instance-ha/blob/master/README.md).
-
-Quickstart invocation
+How Instance HA works
 ---------------------
 
-Quickstart can be invoked like this:
+There are three key resource agents you need to consider. Here's the list:
 
-    ./quickstart.sh \
-       --retain-inventory \
-       --playbook overcloud-instance-ha.yml \
-       --working-dir /path/to/workdir \
-       --config /path/to/config.yml \
-       --release <RELEASE> \
-       --tags all \
-       <HOSTNAME or IP>
+- *fence_compute* (named **fence-nova** inside the cluster): which takes care
+  of marking a compute node with the attribute "evacuate" set to yes;
+- *NovaEvacuate* (named **nova-evacuate** inside the cluster): which takes care
+  of the effective evacuation of the instances and runs on one of the
+  controllers;
+- *nova-compute-wait* (named **nova-compute-checkevacuate** inside the
+  cluster): which waits for eventual evacuation before starting nova compute
+  services and runs on each compute nodes;
 
-Basically this command:
+Looking at the role you will notice that other systemd resources will be added
+into the cluster on the compute nodes, especially in older release like mitaka
+(*neutron-openvswitch-agent*, *libvirtd*, *openstack-ceilometer-compute* and
+*nova-compute*), but the keys for the correct instance HA comprehension are the
+aforementioned three resources.
 
-- **Keeps** existing data on the repo (it's the most important one)
-- Uses the *overcloud-instance-ha.yml* playbook
-- Uses the same custom workdir where quickstart was first deployed
-- Select the specific config file
-- Specifies the release (mitaka, newton, or “master” for ocata)
-- Performs all the tasks in the playbook overcloud-instance-ha.yml
+Evacuation
+----------
 
-**Important note**
+The principle under which Instance HA works is *evacuation*. This means that
+when a host becomes unavailablea for whatever reason, instances on it are
+evacuated to another available host.
+Instance HA works both on shared storage and local storage environments, which
+means that evacuated instances will maintain the same network setup (static ip,
+floating ip and so on) and characteristics inside the new host, even if they
+will be spawned from scratch.
 
-You might need to export *ANSIBLE_SSH_ARGS* with the path of the
-*ssh.config.ansible* file to make the command work, like this:
+What happens when a compute node is lost
+----------------------------------------
 
-    export ANSIBLE_SSH_ARGS="-F /path/to/quickstart/workdir/ssh.config.ansible"
+Once configured, how does the system behaves when evacuation is needed? The
+following sequence describes the actions taken by the cluster and the OpenStack
+components:
 
-Using the playbook on an existing TripleO environment
------------------------------------------------------
+1. A compute node (say overcloud-compute-1) which is running instances goes
+   down for some reason (power outage, kernel panic, manual intervention);
+2. The cluster starts the action sequence to fence this host, since it needs
+   to be sure that the host is *really* down before driving any other operation
+   (otherwise there is potential for data corruption or multiple identical VMs
+   running at the same time in the infrastructure). Setup is configured to have
+   two levels of fencing for the compute hosts:
 
-It is possible to execute the playbook on an environment not created via TriplO
-quickstart, by cloning via git the tripleo-quickstart-utils repo:
+    * **IPMI**: which will occur first and will take care of physically
+      resetting the host and hence assuring that the machine is really powered
+      off;
+    * **fence-nova**: which will occur afterwards and will take care of marking
+      with a cluster per-node attribute "evacuate=yes";
 
-    $ git clone https://gitlab.com/redhat-openstack/tripleo-quickstart-utils
+    So the host gets reset and on the cluster a new node-property like the
+    following will appear:
 
-then it's just a matter of declaring three environment variables, pointing to
-three files:
+        [root@overcloud-controller-0 ~]# attrd_updater -n evacuate -A
+        name="evacuate" host="overcloud-compute-1.localdomain" value="yes"
 
-    $ export ANSIBLE_CONFIG=/path/to/ansible.cfg
-    $ export ANSIBLE_INVENTORY=/path/to/hosts
-    $ export ANSIBLE_SSH_ARGS="-F /path/to/ssh.config.ansible"
+3. At this point the resource **nova-evacuate** which constantly monitors the
+   attributes of the cluster in search of the evacuate tag will find out that
+   the *overcloud-compute-1* host needs evacuation, and by internally using
+   *nova-compute commands*, will start the evactuation of the instances towards
+   another host;
+4. In the meantime, while compute-1 is booting up again,
+   **nova-compute-checkevacuate** will wait (with a default timeout of 120
+   seconds) for the evacuation to complete before starting the chain via the
+   *NovaCompute* resource that will enable the fenced host to become available
+   again for running instances;
 
-Where:
+What to look for when something is not working
+----------------------------------------------
 
-**ansible.cfg** must contain at least these lines:
+Here there are some tips to follow once you need to debug why instance HA is
+not working:
 
-    [defaults]
-    roles_path = /path/to/tripleo-quickstart-utils/roles
+1. Check credentials: many resources require access data the the overcloud
+   coming form the overcloudrc file, so it's not so difficult to do copy
+   errors;
+2. Check connectivity: stonith is essential for cluster and if for some reason
+   the cluster is not able to fence the compute nodes, the whole instance HA
+   environment will not work;
+3. Check errors: inside the controller's cluster log
+   (*/var/log/cluster/corosync.log*) some errors may catch the eye.
 
-**hosts** file must be configured with two *controller* and *compute* sections
-like these:
+Examples on how to ivoke the playbook via ansible
+-------------------------------------------------
 
-    undercloud ansible_host=undercloud ansible_user=stack ansible_private_key_file=/path/to/id_rsa_undercloud
-    overcloud-novacompute-1 ansible_host=overcloud-novacompute-1 ansible_user=heat-admin ansible_private_key_file=/path/to/id_rsa_overcloud
-    overcloud-novacompute-0 ansible_host=overcloud-novacompute-0 ansible_user=heat-admin ansible_private_key_file=/path/to/id_rsa_overcloud
-    overcloud-controller-2 ansible_host=overcloud-controller-2 ansible_user=heat-admin ansible_private_key_file=/path/to/id_rsa_overcloud
-    overcloud-controller-1 ansible_host=overcloud-controller-1 ansible_user=heat-admin ansible_private_key_file=/path/to/id_rsa_overcloud
-    overcloud-controller-0 ansible_host=overcloud-controller-0 ansible_user=heat-admin ansible_private_key_file=/path/to/id_rsa_overcloud
+This command line will install the whole instance-ha solution, with controller
+stonith, compute stonith and all the instance ha steps in:
 
-    [compute]
-    overcloud-novacompute-1
-    overcloud-novacompute-0
+    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10"
 
-    [undercloud]
-    undercloud
+If a user already installed STONITH for controllers and wants just to apply all
+the instance HA steps with STONITH for the compute nodes can launch this:
 
-    [overcloud]
-    overcloud-novacompute-1
-    overcloud-novacompute-0
-    overcloud-controller-2
-    overcloud-controller-1
-    overcloud-controller-0
+    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e stonith_devices="computes"
 
-    [controller]
-    overcloud-controller-2
-    overcloud-controller-1
-    overcloud-controller-0
+To uninstall the whole instance HA solution:
 
-**ssh.config.ansible** can *optionally* contain specific per-host connection
-options, like these:
+    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e instance_ha_action="uninstall"
 
-    ...
-    ...
-    Host overcloud-controller-0
-        ProxyCommand ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o ConnectTimeout=60 -F /path/to/ssh.config.ansible undercloud -W 192.168.24.16:22
-        IdentityFile /path/to/id_rsa_overcloud
-        User heat-admin
-        StrictHostKeyChecking no
-        UserKnownHostsFile=/dev/null
-    ...
-    ...
+Or if you a user needs to omit STONITH for the controllers:
 
-In this example to connect to overcloud-controller-0 ansible will use
-undercloud ad a ProxyHost
+    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e stonith_devices="computes" -e instance_ha_action="uninstall"
 
-With this setup in place is then possible to launch the playbook:
-
-    $ ansible-playbook -vvvv /path/to/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release=newton
-
-Example Playbook
-----------------
-
-The main playbook contains STONITH config role as first thing, since it is a
-pre requisite, and the instance-ha role itself:
-
-    ---
-    - name:  Configure STONITH for all the hosts on the overcloud
-      hosts: undercloud
-      gather_facts: no
-      roles:
-        - stonith-config
-
-    - name: Configure Instance HA
-      hosts: undercloud
-      gather_facts: no
-      roles:
-        - instance-ha
+Is it also possible to totally omit STONITH configuration by passing "none" as
+the value of *stonith_devices*.
 
 License
 -------
