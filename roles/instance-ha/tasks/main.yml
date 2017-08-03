@@ -1,7 +1,16 @@
 ---
+- name: Apply STONITH for controller nodes (if selected)
+  include_role:
+    name: stonith-config
+  when: stonith_action == "install"
 
 - include: apply.yml
-  when: instance_ha_config == 'apply'
+  when: instance_ha_action == 'install'
 
 - include: undo.yml
-  when: instance_ha_config == 'undo'
+  when: instance_ha_action == 'uninstall'
+
+- name: Remove STONITH for controller nodes (if selected)
+  include_role:
+    name: stonith-config
+  when: stonith_action == "uninstall"

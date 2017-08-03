@@ -51,7 +51,7 @@ export OS_NO_CACHE=True
 auth = v3.Password(auth_url=os_auth_url,
                    username=os_username,
                    password=os_password,
-{% if release in [ 'liberty', 'mitaka' ] %}
+{% if release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ] %}
                    tenant_name=os_tenant_name,
 {% else %}
                    project_name=os_tenant_name,

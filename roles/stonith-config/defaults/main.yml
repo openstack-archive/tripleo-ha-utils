@@ -6,8 +6,8 @@ instack_env_file: "{{ working_dir }}/instackenv.json"
 
 config_stonith_python_script: config-stonith-from-instackenv.py.j2
 
-# Can be apply or undo
-stonith_config: "apply"                                                     
+# Can be install, uninstall or none
+stonith_action: "install"                                                     
 
-# Can be none, all, controllers or computes
-stonith_devices: all
+# Can be all, controllers or computes
+stonith_devices: controllers

@@ -8,7 +8,7 @@
 - name: Generate STONITH script
   shell: |
     source {{ working_dir }}/stackrc
-    {{ working_dir }}/config_stonith_from_instackenv.py {{ instack_env_file }} {{ stonith_config }} {{ stonith_devices }}
+    {{ working_dir }}/config_stonith_from_instackenv.py {{ instack_env_file }} {{ stonith_action }} {{ stonith_devices }}
   register: stonith_script
 
 - name: Delete the STONITH script on the overcloud (if exists)

@@ -24,7 +24,7 @@
   delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
-  when: release == 'liberty' or release == 'mitaka'
+  when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
 - name: Disable neutron-openvswitch-agent on compute
   service:
@@ -35,7 +35,7 @@
   delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
-  when: release == 'liberty' or release == 'mitaka'
+  when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
 - name: Disable libvirtd on compute
   become: yes
@@ -46,7 +46,7 @@
   delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
-  when: release == 'liberty' or release == 'mitaka'
+  when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
 - name: Generate authkey for remote pacemaker
   shell: |
@@ -163,16 +163,16 @@
           - openstack-glance-api-clone
           - neutron-metadata-agent-clone
           - openstack-nova-conductor-clone
-      when: release == 'liberty' or release == 'mitaka'
+      when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
     - name: Disable keystone resource
       shell: "pcs resource disable openstack-keystone --wait=900"
-      when: release == 'liberty'
+      when: release in [ 'liberty', 'rhos-8' ]
 
     # Keystone resource was replaced by openstack-core resource in RHOS9
     - name: Disable openstack-core resource
       shell: "pcs resource disable openstack-core --wait=900"
-      when: release == 'mitaka'
+      when: release in [ 'mitaka', 'rhos-9' ]
 
     - name: Set controller pacemaker property on controllers
       shell: "pcs property set --node {{ item }} osprole=controller"
@@ -221,14 +221,14 @@
           pcs constraint colocation add ceilometer-compute-clone with libvirtd-compute-clone
           pcs constraint order start libvirtd-compute-clone then nova-compute-clone
           pcs constraint colocation add nova-compute-clone with libvirtd-compute-clone
-      when: release == 'liberty' or release == 'mitaka'
+      when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
     - name: Create pacemaker constraint for neutron-server, nova-conductor and ceilometer-notification
       shell: |
           pcs constraint order start neutron-server-clone then neutron-openvswitch-agent-compute-clone require-all=false
           pcs constraint order start openstack-ceilometer-notification-clone then ceilometer-compute-clone require-all=false
           pcs constraint order start openstack-nova-conductor-clone then nova-compute-checkevacuate-clone require-all=false
-      when: release == 'liberty' or release == 'mitaka'
+      when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
     - name: Check if ipmi exists for all compute nodes
       shell: |
@@ -264,11 +264,11 @@
 
     - name: Enable keystone resource
       shell: "pcs resource enable openstack-keystone"
-      when: release == 'liberty'
+      when: release in [ 'liberty', 'rhos-8' ]
 
     - name: Enable openstack-core resource
       shell: "pcs resource enable openstack-core"
-      when: release == 'mitaka'
+      when: release in [ 'mitaka', 'rhos-9' ]
 
     - name: Wait for httpd service to be started
       shell: "systemctl show httpd --property=ActiveState"
@@ -276,7 +276,7 @@
       until: httpd_status_result.stdout.find('inactive') == -1 and httpd_status_result.stdout.find('activating') == -1
       retries: 30
       delay: 10
-      when: release != 'liberty' and release != 'mitaka'
+      when: release not in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
     - name: Enable compute nodes resources (nova)
       shell: "pcs resource enable {{ item }}"
@@ -290,7 +290,7 @@
           - neutron-openvswitch-agent-compute
           - libvirtd-compute
           - ceilometer-compute
-      when: release == 'liberty' or release == 'mitaka'
+      when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
   environment:
      OS_USERNAME: "{{ OS_USERNAME.stdout }}"
      OS_PASSWORD: "{{ OS_PASSWORD.stdout }}"

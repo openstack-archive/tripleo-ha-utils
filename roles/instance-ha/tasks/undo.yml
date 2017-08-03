@@ -131,7 +131,7 @@
   delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
-  when: release == 'liberty' or release == 'mitaka'
+  when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
 - name: Enable neutron-openvswitch-agent on compute
   service:
@@ -142,7 +142,7 @@
   delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
-  when: release == 'liberty' or release == 'mitaka'
+  when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
 - name: Enable libvirtd on compute
   become: yes
@@ -153,7 +153,7 @@
   delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
-  when: release == 'liberty' or release == 'mitaka'
+  when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
 - name: Stop pacemaker remote service on compute nodes
   become: yes
@@ -179,5 +179,5 @@
   include_role:                                                                 
     name: stonith-config
   vars:                                                                         
-    stonith_config: "undo"
+    stonith_action: "uninstall"
     stonith_devices: "computes"
