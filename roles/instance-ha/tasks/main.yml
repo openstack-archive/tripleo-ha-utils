@@ -1,7 +1,7 @@
 ---
 
-- include: apply.yml                                                 
-  when: apply_instance_ha|bool                                               
-                                                                                 
+- include: apply.yml
+  when: instance_ha_config == 'apply'
+
 - include: undo.yml
-  when: undo_instance_ha|bool                                               
+  when: instance_ha_config == 'undo'
