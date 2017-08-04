@@ -1,7 +1,7 @@
 ---
 
-working_dir: "/home/stack"                                                       
-validate_ha_logs_dir: "{{ working_dir }}/validate_ha_logs"                       
+working_dir: "/home/stack"
+validate_ha_logs_dir: "{{ working_dir }}/validate_ha_logs"
 overcloud_working_dir: "/home/heat-admin"
 
 environment_file: environment.j2

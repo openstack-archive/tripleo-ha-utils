@@ -176,8 +176,8 @@
     - "{{ groups['compute'] }}"
 
 - name: Undo STONITH for compute nodes
-  include_role:                                                                 
+  include_role:
     name: stonith-config
-  vars:                                                                         
+  vars:
     stonith_action: "uninstall"
     stonith_devices: "computes"

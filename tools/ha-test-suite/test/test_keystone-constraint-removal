@@ -2,7 +2,7 @@
 
 echo "$(date) * Step 1: disable keystone resource via httpd stop"
 play_on_resources "disable" "httpd"
-   
+
 echo "$(date) - List of cluster's failed actions:"
 check_failed_actions
 

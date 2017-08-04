@@ -1,8 +1,8 @@
 ---
 - name: Apply STONITH for compute nodes
-  include_role:                                                                 
+  include_role:
     name: stonith-config
-  vars:                                                                         
+  vars:
     stonith_devices: "computes"
 
 - name: Disable openstack-nova-compute on compute

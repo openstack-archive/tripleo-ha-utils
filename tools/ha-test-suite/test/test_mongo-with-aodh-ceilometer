@@ -2,7 +2,7 @@
 
 echo "$(date) * Step 1: disable mongo"
 play_on_resources "disable" "mongo"
-   
+
 echo "$(date) - List of cluster's failed actions:"
 check_failed_actions
 
