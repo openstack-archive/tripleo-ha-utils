@@ -178,8 +178,8 @@ not working:
 3. Check errors: inside the controller's cluster log
    (*/var/log/cluster/corosync.log*) some errors may catch the eye.
 
-Examples on how to ivoke the playbook via ansible
--------------------------------------------------
+Examples on how to invoke the playbook via ansible
+--------------------------------------------------
 
 This command line will install the whole instance-ha solution, with controller
 stonith, compute stonith and all the instance ha steps in:

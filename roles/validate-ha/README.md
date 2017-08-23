@@ -62,8 +62,8 @@ above.
 
 All tests are performed using the tool [ha-test-suite](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/tools/ha-test-suite).
 
-Examples on how to ivoke the playbook via ansible
--------------------------------------------------
+Examples on how to invoke the playbook via ansible
+--------------------------------------------------
 
 Here's a way to invoke the tests from an *undercloud* machine prepared as
 described [here](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/README.md).

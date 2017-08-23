@@ -56,8 +56,8 @@ Limitations
 
 The only kind of STONITH devices supported are **for the moment** IPMI.
 
-Examples on how to ivoke the playbook via ansible
--------------------------------------------------
+Examples on how to invoke the playbook via ansible
+--------------------------------------------------
 
 This command line will install the STONITH devices for the controller nodes:
 
