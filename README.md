@@ -20,7 +20,7 @@ The playbooks can be launched directly from the **undercloud** machine of the
 First of all a clone of the *tripleo-quickstart-utils* repository must be
 created:
 
-    git clone https://gitlab.com/redhat-openstack/tripleo-quickstart-utils
+    git clone https://github.com/redhat-openstack/tripleo-quickstart-utils
 
 then three environment variables needs to be exported, pointing three files:
 
