@@ -186,6 +186,13 @@ stonith, compute stonith and all the instance ha steps in:
 
     ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10"
 
+By default the playbook will install the instance-ha solution with the shared
+storage configuration, but it is possible to make the installation in a no 
+shared storage environment, passing the **instance_ha_shared_storage** variable
+as **false**:
+
+    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e instance_ha_shared_storage=false
+
 If a user already installed STONITH for controllers and wants just to apply all
 the instance HA steps with STONITH for the compute nodes can launch this:
 

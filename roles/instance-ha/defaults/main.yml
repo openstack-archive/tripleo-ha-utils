@@ -5,3 +5,6 @@ working_dir: "/home/stack"
 
 # Can be install or uninstall
 instance_ha_action: "install"
+
+# Do we have a shared storage or not?
+instance_ha_shared_storage: true

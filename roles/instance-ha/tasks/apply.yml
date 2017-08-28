@@ -149,7 +149,13 @@
 - block:
     - name: Create resource nova-evacuate
       shell: |
+        pcs resource create nova-evacuate ocf:openstack:NovaEvacuate auth_url=$OS_AUTH_URL username=$OS_USERNAME password=$OS_PASSWORD tenant_name=$OS_TENANT_NAME
+      when: instance_ha_shared_storage|bool
+
+    - name: Create resource nova-evacuate (no_shared_storage)
+      shell: |
         pcs resource create nova-evacuate ocf:openstack:NovaEvacuate auth_url=$OS_AUTH_URL username=$OS_USERNAME password=$OS_PASSWORD tenant_name=$OS_TENANT_NAME no_shared_storage=1
+      when: not instance_ha_shared_storage|bool
 
     - name: Create pacemaker constraints to start VIP resources before nova-evacuate
       shell: |
@@ -236,7 +242,12 @@
       with_items: "{{ groups['compute'] }}"
 
     - name: Create fence-nova pacemaker resource
-      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 no-shared-storage=False --force"
+      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 --force"
+      when: instance_ha_shared_storage|bool
+
+    - name: Create fence-nova pacemaker resource (no shared storage)
+      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 no-shared-storage=True --force"
+      when: not instance_ha_shared_storage|bool
 
     - name: Create pacemaker constraint for fence-nova to fix it on controller node and set resource-discovery never
       shell: "pcs constraint location fence-nova rule resource-discovery=never score=0 osprole eq controller"
