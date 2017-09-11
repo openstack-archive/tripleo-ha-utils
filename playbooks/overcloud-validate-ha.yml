@@ -2,6 +2,6 @@
 
 - name:  Validate overcloud HA status
   hosts: undercloud
-  gather_facts: no
+  gather_facts: yes
   roles:
     - validate-ha

@@ -1,16 +1,26 @@
 ---
-- name: Apply STONITH for controller nodes (if selected)
+- name: Apply STONITH for controller nodes
   include_role:
     name: stonith-config
-  when: stonith_action == "install"
+  when:
+    - instance_ha_action == "install"
+    - stonith_devices in ["all","controllers"]
 
-- include: apply.yml
-  when: instance_ha_action == 'install'
+- name: Apply Instance High Availability steps
+  include: apply.yml
+  when:
+    - instance_ha_action == "install"
 
-- include: undo.yml
-  when: instance_ha_action == 'uninstall'
+- name: Undo Instance High Availability steps
+  include: undo.yml
+  when:
+    - instance_ha_action == "uninstall"
 
-- name: Remove STONITH for controller nodes (if selected)
+- name: Remove STONITH for controller nodes
   include_role:
     name: stonith-config
-  when: stonith_action == "uninstall"
+  vars:
+    stonith_action: "uninstall"
+  when:
+    - instance_ha_action == "uninstall"
+    - stonith_devices in ["all","controllers"]

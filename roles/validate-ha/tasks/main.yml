@@ -19,7 +19,7 @@
 
 - name: Copy ha-test-suite on undercloud and controllers
   shell: >
-    /usr/bin/rsync --delay-updates -F --compress --archive -e 'ssh -F {{ local_working_dir }}/ssh.config.ansible' {{ local_working_dir }}/tripleo-quickstart-utils/tools/ha-test-suite  {{ item }}:
+    /usr/bin/rsync --delay-updates -F --compress --archive -e 'ssh -F {{ local_working_dir }}/ssh.config.ansible' {{ local_working_dir }}/tripleo-quickstart-utils/tools/ha-test-suite  {{ hostvars[item]['ansible_hostname'] }}:
   delegate_to: "localhost"
   with_items:
     - "{{ groups['controller'] }}"
@@ -36,7 +36,7 @@
 # Test: failed actions
 - block:
     - name: HA test - Failed actions (overcloud)
-      delegate_to: overcloud-controller-0
+    delegate_to: "{{ groups.controller[0] }}"
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_check-failed-actions
       register: test_ha_failed_actions_cmd
@@ -51,7 +51,7 @@
 # Test: Master/Slave
 - block:
     - name: HA test - Master/Slave core resource stop and start (overcloud)
-      delegate_to: overcloud-controller-0
+      delegate_to: "{{ groups.controller[0] }}"
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_master-slave -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_master-slave
       register: test_ha_master_slave_cmd
@@ -66,7 +66,7 @@
 # Test: Keystone stop
 - block:
     - name: HA test Keystone stop (overcloud)
-      delegate_to: overcloud-controller-0
+      delegate_to: "{{ groups.controller[0] }}"
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_keystone-constraint-removal -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_keystone-constraint-removal
       register: test_ha_keystone_stop_cmd
@@ -81,7 +81,7 @@
 # Test: Keystone removal
 - block:
     - name: HA test Keystone removal (overcloud)
-      delegate_to: overcloud-controller-0
+    delegate_to: "{{ groups.controller[0] }}"
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_keystone-constraint-removal -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_keystone-constraint-removal
       register: test_ha_keystone_constraint_removal_cmd
@@ -96,7 +96,7 @@
 # Test: NG A
 - block:
     - name: HA test NG A (overcloud)
-      delegate_to: overcloud-controller-0
+      delegate_to: "{{ groups.controller[0] }}"
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_pacemaker-light-a -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_pacemaker-light
       register: test_ha_ng_a_cmd
@@ -111,7 +111,7 @@
 # Test: NG B
 - block:
     - name: HA test NG B (overcloud)
-      delegate_to: overcloud-controller-0
+      delegate_to: "{{ groups.controller[0] }}"
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_pacemaker-light-b -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_pacemaker-light
       register: test_ha_ng_b_cmd
@@ -126,7 +126,7 @@
 # Test: NG C
 - block:
     - name: HA test NG C (overcloud)
-      delegate_to: overcloud-controller-0
+      delegate_to: "{{ groups.controller[0] }}"
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_pacemaker-light-c -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_pacemaker-light
       register: test_ha_ng_c_cmd

@@ -15,7 +15,7 @@
   file:
     path: "{{ overcloud_working_dir }}/config-stonith.sh"
     state: absent
-  delegate_to: overcloud-controller-0
+  delegate_to: "{{ groups.controller[0] }}"
 
 - name: Create the STONITH script on the overcloud
   lineinfile:
@@ -23,10 +23,10 @@
     line: "{{ stonith_script.stdout }}"
     create: yes
     mode: 0755
-  delegate_to: overcloud-controller-0
+  delegate_to: "{{ groups.controller[0] }}"
 
 - name: Execute STONITH script
   become: true
-  delegate_to: overcloud-controller-0
+  delegate_to: "{{ groups.controller[0] }}"
   shell: >
     {{ overcloud_working_dir }}/config-stonith.sh &> config_stonith.log
