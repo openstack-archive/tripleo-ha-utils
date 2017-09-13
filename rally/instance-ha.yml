@@ -1,0 +1,99 @@
+---
+- hosts: undercloud
+  gather_facts: no
+  become: yes
+  become_method: sudo
+  tasks:
+    - name: Install Rally dependencies
+      shell: |
+        # Python pip
+        wget https://bootstrap.pypa.io/get-pip.py -O get-pip.py
+        python get-pip.py
+        # Depndencies
+        yum install -y gmp-devel libffi-devel libxml2-devel libxslt-devel openssl-devel postgresql-devel gcc python-devel
+
+- hosts: undercloud
+  gather_facts: no
+  tasks:
+    - name: Install Rally
+      shell: |
+        # Install Rally from upstream
+        wget -q -O- https://raw.githubusercontent.com/openstack/rally/master/install_rally.sh | bash |& tee rally-install.log
+        mkdir -p .rally/plugins
+    - name: Check Rally installation
+      shell: |
+        source /home/stack/rally/bin/activate
+        rally --version
+
+- hosts: undercloud
+  gather_facts: no
+  tasks:
+    - name: Copy instance-ha Rally plugin to remote rally directory
+      copy:
+        src: plugins/instanceha.py
+        dest: .rally/plugins
+
+- hosts: undercloud
+  gather_facts: no
+  tasks:
+    - name: Install Rally environment and create deployment
+      shell: |
+        source /home/stack/overcloudrc
+        source /home/stack/rally/bin/activate
+        export OS_INSECURE=True
+        rally deployment create --fromenv --name overcloud |& tee rally-instance-ha-deployment-create.log
+        rally deployment use overcloud
+
+- hosts: undercloud
+  gather_facts: no
+  tasks:
+    - name: Prepare overcloud env
+      shell: |
+        source /home/stack/overcloudrc
+
+        projectid=$(openstack project list | awk '/admin/ {print $2}')
+        wget -O /tmp/cirros-0.3.4-x86_64-disk.img http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img
+        glance --os-project-id=$projectid image-create --name cirros --container-format bare --disk-format raw --file /tmp/cirros-0.3.4-x86_64-disk.img --visibility public
+
+        nova flavor-create --ephemeral 0 --is-public True m1.tiny overcloud-instance-test-small-flavor 2048 20 1
+
+        neutron net-create {{ public_physical_network }}-network --router:external=True --provider:physical_network {{ public_physical_network }} --provider:network_type flat
+        neutron subnet-create --name {{ public_physical_network }}-subnet --disable-dhcp --allocation-pool start={{ public_net_pool_start }},end={{ public_net_pool_end }} --gateway {{ public_net_gateway }} {{ public_physical_network }}-network {{ floating_ip_cidr }}
+
+- hosts: undercloud
+  gather_facts: no
+  tasks:
+    - name: Copy Rally task file
+      template:
+        src: templates/instance-ha.yaml.j2
+        dest: "/home/stack/instance-ha.yaml"
+        mode: 0666
+
+    - name: Start Rally task
+      shell: |
+        source /home/stack/rally/bin/activate
+        rally task start --task /home/stack/instance-ha.yaml --deployment overcloud |& tee rally-instance-ha-run.log
+
+    - name: Create Report JUnit
+      shell: |
+        source /home/stack/rally/bin/activate
+        rally task report --junit --out /home/stack/nosetests.xml |& tee rally-instance-ha-report.log
+
+    - fetch:
+        src: "/home/stack/nosetests.xml"
+        dest: "{{ lookup('env', 'PWD') }}/nosetests.xml"
+        flat: yes
+
+- hosts: undercloud
+  gather_facts: no
+  tasks:
+    - name: Remove overcloud env
+      shell: |
+        source /home/stack/overcloudrc
+
+        projectid=$(openstack project list | awk '/admin/ {print $2}')
+        glance --os-project-id=$projectid image-delete $(glance --os-project-id=$projectid image-list | awk '/cirros/ {print $2}')
+
+        nova flavor-delete overcloud-instance-test-small-flavor
+
+        neutron net-delete {{ public_physical_network }}-network

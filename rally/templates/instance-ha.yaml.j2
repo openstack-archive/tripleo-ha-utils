@@ -1,0 +1,81 @@
+---
+  InstanceHA.recover_instance_fip_and_volume:
+    -
+      args:
+        flavor:
+            name: "m1.tiny"
+        image:
+            name: cirros
+        volume_args:
+            size: 1
+        floating_network: "{{ public_physical_network }}-network"
+        force_delete: false
+        wait_for_ping: false
+        computes:
+            username: "heat-admin"
+            key_filename: "/home/stack/.ssh/id_rsa"
+            port: 22
+      runner:
+        type: "constant"
+        times: 1
+        concurrency: 1
+      context:
+        users:
+          tenants: 2
+          users_per_tenant: 1
+        network: {}
+      sla:
+        failure_rate:
+          max: 0.0
+  InstanceHA.recover_stopped_instance_fip:
+    -
+      args:
+        flavor:
+            name: "m1.tiny"
+        image:
+            name: cirros
+        floating_network: "{{ public_physical_network }}-network"
+        force_delete: false
+        wait_for_ping: false
+        computes:
+            username: "heat-admin"
+            key_filename: "/home/stack/.ssh/id_rsa"
+            port: 22
+      runner:
+        type: "constant"
+        times: 1
+        concurrency: 1
+      context:
+        users:
+          tenants: 2
+          users_per_tenant: 1
+        network: {}
+      sla:
+        failure_rate:
+          max: 0.0
+  InstanceHA.recover_instance_two_cycles:
+    -
+      args:
+        flavor:
+            name: "m1.tiny"
+        image:
+            name: cirros
+        floating_network: "{{ public_physical_network }}-network"
+        force_delete: false
+        wait_for_ping: false
+        computes:
+            username: "heat-admin"
+            key_filename: "/home/stack/.ssh/id_rsa"
+            port: 22
+      runner:
+        type: "constant"
+        times: 1
+        concurrency: 1
+      context:
+        users:
+          tenants: 2
+          users_per_tenant: 1
+        network: {}
+      sla:
+        failure_rate:
+          max: 0.0
