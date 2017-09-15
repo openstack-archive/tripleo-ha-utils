@@ -125,6 +125,12 @@
   tags:
     - overcloud-deploy-check
 
+- name: Gather undercloud and overcloud facts
+  hosts: undercloud overcloud
+  gather_facts: yes
+  tags:
+    - overcloud-validate-ha
+
 - name: Validate the overcloud using HA tests
   hosts: undercloud
   gather_facts: no

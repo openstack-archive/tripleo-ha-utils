@@ -17,13 +17,18 @@
     "{{ working_dir }}/workarounds.sh"
   when: apply_workarounds
 
-- name: Copy ha-test-suite on undercloud and controllers
+- name: Copy ha-test-suite on undercloud
+  synchronize:
+    src: "{{ local_working_dir }}/tripleo-quickstart-utils/tools/ha-test-suite/"
+    dest: "{{ working_dir }}/ha-test-suite"
+    use_ssh_args: true
+
+- name: Copy ha-test-suite on controllers
   shell: >
-    /usr/bin/rsync --delay-updates -F --compress --archive -e 'ssh -F {{ local_working_dir }}/ssh.config.ansible' {{ local_working_dir }}/tripleo-quickstart-utils/tools/ha-test-suite  {{ hostvars[item]['ansible_hostname'] }}:
+    /usr/bin/rsync --delay-updates -F --compress --archive -e 'ssh -F {{ local_working_dir }}/ssh.config.ansible' {{ local_working_dir }}/tripleo-quickstart-utils/tools/ha-test-suite {{ hostvars[item]['ansible_hostname'] }}:
   delegate_to: "localhost"
   with_items:
     - "{{ groups['controller'] }}"
-    - "undercloud"
 
 - name: Include test sequence depending on release
   include_vars:
