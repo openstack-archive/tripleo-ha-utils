@@ -13,7 +13,7 @@
     state: stopped
     enabled: no
   become: yes
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
 
@@ -23,7 +23,7 @@
     state: stopped
     enabled: no
   become: yes
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
   when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
@@ -34,7 +34,7 @@
     state: stopped
     enabled: no
   become: yes
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
   when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
@@ -45,7 +45,7 @@
     name: libvirtd
     state: stopped
     enabled: no
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
   when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
@@ -62,7 +62,7 @@
      state: directory
      mode: 0750
      group: "haclient"
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['controller'] }}"
     - "{{ groups['compute'] }}"
@@ -74,7 +74,7 @@
      dest: /etc/pacemaker/authkey
      mode: 0640
      group: "haclient"
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['controller'] }}"
     - "{{ groups['compute'] }}"
@@ -90,7 +90,7 @@
   shell: |
     iptables -I INPUT -p tcp --dport 3121 -j ACCEPT
     /sbin/service iptables save
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['controller'] }}"
     - "{{ groups['compute'] }}"
@@ -101,7 +101,7 @@
     name: pacemaker_remote
     enabled: yes
     state: started
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
 
@@ -312,7 +312,7 @@
      OS_AUTH_URL: "{{ OS_AUTH_URL.stdout }}"
      OS_TENANT_NAME: "{{ OS_TENANT_NAME.stdout }}"
   become: yes
-  delegate_to: "overcloud-controller-0"
+  delegate_to: "{{ groups.controller[0] }}"
 
 - name: Cleanup (if any) failed resources
   shell: |
