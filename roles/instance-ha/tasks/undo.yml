@@ -120,7 +120,7 @@
     state: started
     enabled: yes
   become: yes
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
 
@@ -130,7 +130,7 @@
     state: started
     enabled: yes
   become: yes
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
   when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
@@ -141,7 +141,7 @@
     state: started
     enabled: yes
   become: yes
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
   when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
@@ -152,7 +152,7 @@
     name: libvirtd
     state: started
     enabled: yes
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
   when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
@@ -163,7 +163,7 @@
     name: pacemaker_remote
     enabled: no
     state: stopped
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
 
@@ -172,7 +172,7 @@
   shell: >
     iptables -D INPUT -p tcp --dport 3121 -j ACCEPT;
     /sbin/service iptables save
-  delegate_to: "{{ hostvars[item]['ansible_hostname'] }}"
+  delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['controller'] }}"
     - "{{ groups['compute'] }}"
