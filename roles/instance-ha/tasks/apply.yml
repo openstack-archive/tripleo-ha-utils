@@ -105,9 +105,15 @@
   with_items:
     - "{{ groups['compute'] }}"
 
-- name: Get the overcloudrc file
+- name: Get the name of the stack
   shell: |
-    cat {{ working_dir }}/overcloudrc
+    source {{ working_dir }}/stackrc
+    openstack stack list -f value -c 'Stack Name'
+  register: stack_name
+  delegate_to: "{{ groups['undercloud'][0] }}"
+
+- name: Get the contents of the overcloud's rc file
+  shell: cat {{ working_dir }}/{{ stack_name.stdout }}rc
   register: overcloudrc
 
 - block:
