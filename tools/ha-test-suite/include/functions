@@ -137,7 +137,7 @@ function play_on_resources {
   do
    echo -n "$(date) - Performing action $action on resource $resource "
    # Do the action on the resource
-   sudo pcs resource $action $resource --wait $RESOURCE_CHANGE_STATUS_TIMEOUT
+   sudo pcs resource $action $resource --wait=$RESOURCE_CHANGE_STATUS_TIMEOUT
    if [ $? -ne 0 ]
     then
      echo "FAILURE!"

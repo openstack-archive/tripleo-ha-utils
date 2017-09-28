@@ -51,6 +51,7 @@
   rescue:
     - name: copy stderr test result to undercloud and check command
       copy: content="{{ test_ha_failed_actions_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_failed_actions_stderr.log"
+    - fail: msg="{{ test_ha_failed_actions_cmd.stderr }}"
   when: test_ha_failed_actions|bool
 
 # Test: Master/Slave
@@ -66,6 +67,7 @@
   rescue:
     - name: copy stderr test result to undercloud and check command
       copy: content="{{ test_ha_master_slave_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_master_slave_stderr.log"
+    - fail: msg="{{ test_ha_master_slave_cmd.stderr }}"
   when: test_ha_master_slave|bool
 
 # Test: Keystone stop
@@ -81,6 +83,7 @@
   rescue:
     - name: copy stderr test result to undercloud and check command
       copy: content="{{ test_ha_keystone_stop_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_keystone_stop_stderr.log"
+    - fail: msg="{{ test_ha_keystone_stop_cmd.stderr }}"
   when: test_ha_keystone_stop|bool
 
 # Test: Keystone removal
@@ -96,6 +99,7 @@
   rescue:
     - name: copy stderr test result to undercloud and check command
       copy: content="{{ test_ha_keystone_constraint_removal_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_keystone_constraint_removal_stderr.log"
+    - fail: msg="{{ test_ha_keystone_constraint_removal_cmd.stderr }}"
   when: test_ha_keystone_constraint_removal|bool
 
 # Test: NG A
@@ -111,6 +115,7 @@
   rescue:
     - name: copy stderr test result to undercloud and check command
       copy: content="{{ test_ha_ng_a_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_a_stderr.log"
+    - fail: msg="{{ test_ha_ng_a_cmd.stderr }}"
   when: test_ha_ng_a|bool
 
 # Test: NG B
@@ -126,6 +131,7 @@
   rescue:
     - name: copy stderr test result to undercloud and check command
       copy: content="{{ test_ha_ng_b_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_b_stderr.log"
+    - fail: msg="{{ test_ha_ng_b_cmd.stderr }}"
   when: test_ha_ng_b|bool
 
 # Test: NG C
@@ -141,6 +147,7 @@
   rescue:
     - name: copy stderr test result to undercloud and check command
       copy: content="{{ test_ha_ng_c_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_c_stderr.log"
+    - fail: msg="{{ test_ha_ng_c_cmd.stderr }}"
   when: test_ha_ng_c|bool
 
 # Test: Instance deployment
@@ -155,4 +162,5 @@
   rescue:
     - name: copy stderr test result to undercloud and check command
       copy: content="{{ test_ha_instance_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_instance_stderr.log"
+    - fail: msg="{{ test_ha_instance_cmd.stderr }}"
   when: test_ha_instance|bool
