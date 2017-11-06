@@ -94,6 +94,14 @@
   tags:
     - overcloud-prep-network
 
+- name: Prepare SSL for the overcloud
+  hosts: undercloud
+  gather_facts: yes
+  roles:
+    - overcloud-ssl
+  tags:
+    - overcloud-ssl
+
 - name: Deploy the overcloud
   hosts: undercloud
   gather_facts: yes
