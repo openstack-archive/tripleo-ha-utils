@@ -69,7 +69,23 @@ nova boot --image CirrOS --flavor test.small --security-groups pingandssh --nic 
 #...
 #| eb29c1a1-c30e-4f8f-91ea-cec1fd38c088 | $INSTANCE_NAME | BUILD  | spawning   | NOSTATE     | private-network=10.1.1.5 |
 #...
-sleep 5
+echo "Waiting for instance $INSTANCE_NAME to come up"
+COUNTER=1
+while [ $COUNTER -lt $TIMEOUT ]
+do
+ instance_status=$(nova list | awk "/$INSTANCE_NAME/ {print \$10}")
+
+ if [ "$instance_status" == "Running" ]
+  then
+   echo "SUCCESS"
+   break
+  else
+   echo -n "."
+ fi
+ let COUNTER=COUNTER+1
+done
+
+[ $COUNTER -ge $TIMEOUT ] && (echo "FAILURE! Instance status: $instance_status"; exit 1)
 instance_ip=$(nova list | grep $INSTANCE_NAME | awk '{print $12}' | sed "s/private-network=//g")
 echo instance_ip=$instance_ip
 
