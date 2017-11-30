@@ -129,6 +129,7 @@
   delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
+  when: release not in [ 'pike', 'rhos-12' ]
 
 - name: Enable neutron-openvswitch-agent on compute
   service:
