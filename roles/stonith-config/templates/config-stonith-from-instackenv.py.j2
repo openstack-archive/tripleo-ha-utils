@@ -21,10 +21,12 @@ fence_devices = sys.argv[3]
 os_username = os.environ['OS_USERNAME']
 os_password = os.environ['OS_PASSWORD']
 os_auth_url = os.environ['OS_AUTH_URL']
-if os.environ['OS_TENANT_NAME']:
+try:
  os_tenant_name = os.environ['OS_TENANT_NAME']
-else:
- os_tenant_name = os.environ['OS_PROJECT_NAME']
+except:
+ os_project_name = os.environ['OS_PROJECT_NAME']
+ os_project_domain_name=os.environ['OS_PROJECT_DOMAIN_NAME']
+ os_user_domain_name=os.environ['OS_USER_DOMAIN_NAME']
 os_compute_api_version = os.environ['COMPUTE_API_VERSION']
 
 # If fence_devices includes controllers then we act on the overall stonith-enabled property of the cluster
@@ -37,19 +39,39 @@ if (fence_devices in ['controllers','all']):
   print('pcs property set stonith-enabled=true')
 
 # Connect to nova
-auth = v2.Password(auth_url=os_auth_url, username=os_username, password=os_password, tenant_name=os_tenant_name)
-sess = session.Session(auth=auth)
-nt = client.Client("2.1", session=sess)
+try:
+ nt = client.Client(2,
+                    auth_url=os_auth_url,
+                    username=os_username,
+                    password=os_password,
+                    tenant_name=os_tenant_name)
+except:
+ nt = client.Client(2,
+                    auth_url=os_auth_url,
+                    username=os_username,
+                    password=os_password,
+                    project_name=os_project_name,
+                    project_domain_name=os_project_domain_name,
+                    user_domain_name=os_user_domain_name)
 
 # Parse instances
 for instance in nt.servers.list():
  for node in data["nodes"]:
-  if (node["mac"][0] == instance.addresses['ctlplane'][0]['OS-EXT-IPS-MAC:mac_addr'] and (('controller' in instance.name and fence_devices in ['controllers','all']) or ('compute' in instance.name and fence_devices in ['computes','all']))):
+  if (node["mac"][0] == instance.addresses['ctlplane'][0]['OS-EXT-IPS-MAC:mac_addr'] 
+      and
+      (
+       ('controller' in instance.name and fence_devices in ['controllers','all'])
+       or
+       ('compute' in instance.name and fence_devices in ['computes','all'])
+      )
+     ):
    if (fence_config == 'uninstall'):
     print('pcs stonith delete ipmilan-{} || /bin/true'.format(instance.name))
    elif (fence_config == 'install'):
-    print('pcs stonith create ipmilan-{} fence_ipmilan pcmk_host_list="{}" ipaddr="{}" login="{}" passwd="{}" lanplus="true" delay=20 op monitor interval=60s'.format(instance.name,instance.name,node["pm_addr"],node["pm_user"],node["pm_password"]))
-    print('pcs constraint location ipmilan-{} avoids {}'.format(instance.name,instance.name))
+    print('pcs stonith create ipmilan-{} fence_ipmilan pcmk_host_list="{}" ipaddr="{}" login="{}" passwd="{}" lanplus="true" delay=20 op monitor interval=60s'
+          .format(instance.name,instance.name,node["pm_addr"],node["pm_user"],node["pm_password"]))
+    print('pcs constraint location ipmilan-{} avoids {}'
+          .format(instance.name,instance.name))
 
 # Close nova connection
 jdata.close()

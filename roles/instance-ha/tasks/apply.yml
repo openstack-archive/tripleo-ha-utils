@@ -16,6 +16,7 @@
   delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['compute'] }}"
+  when: release not in [ 'pike', 'rhos-12' ]
 
 - name: Disable neutron-openvswitch-agent on compute
   service:
@@ -161,6 +162,10 @@
         pcs resource create nova-evacuate ocf:openstack:NovaEvacuate auth_url=$OS_AUTH_URL username=$OS_USERNAME password=$OS_PASSWORD tenant_name=$OS_TENANT_NAME no_shared_storage=1
       when: not instance_ha_shared_storage|bool
 
+    - name: Create pacemaker constraint to start nova-evacuate only on non compute nodes
+      shell: |
+        pcs constraint location nova-evacuate rule resource-discovery=never score=-INFINITY osprole eq compute
+
     - name: Create pacemaker constraints to start VIP resources before nova-evacuate
       shell: |
           for i in $(pcs status | grep IP | awk '{ print $1 }')
@@ -207,6 +212,7 @@
               pcs constraint location $i rule resource-discovery=exclusive score=0 osprole eq controller
             fi
           done
+      when: release not in [ 'pike', 'rhos-12' ]
 
     - name: Create compute pacemaker resources and constraints
       shell: |
@@ -216,6 +222,7 @@
           pcs constraint location nova-compute-clone rule resource-discovery=exclusive score=0 osprole eq compute
           pcs constraint order start nova-compute-checkevacuate-clone then nova-compute-clone require-all=true
           pcs constraint order start nova-compute-clone then nova-evacuate require-all=false
+      when: release not in [ 'pike', 'rhos-12' ]
 
     - name: Create compute pacemaker resources and constraints
       shell: |
@@ -247,20 +254,30 @@
 
     - name: Create fence-nova pacemaker resource
       shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 --force"
-      when: instance_ha_shared_storage|bool
+      when: instance_ha_shared_storage|bool and release not in [ 'pike', 'rhos-12' ]
 
     - name: Create fence-nova pacemaker resource (no shared storage)
       shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 no-shared-storage=True --force"
-      when: not instance_ha_shared_storage|bool
+      when: not instance_ha_shared_storage|bool and release not in [ 'pike', 'rhos-12' ]
+
+    - name: Create fence-nova pacemaker resource (Pike/RHOS-12)
+      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 meta provides=unfencing --force"
+      when: instance_ha_shared_storage|bool and release in [ 'pike', 'rhos-12' ]
+
+    - name: Create fence-nova pacemaker resource (no shared storage, Pike/RHOS-12)
+      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 no-shared-storage=True meta provides=unfencing --force"
+      when: not instance_ha_shared_storage|bool and release in [ 'pike', 'rhos-12' ]
 
     - name: Create pacemaker constraint for fence-nova to fix it on controller node and set resource-discovery never
       shell: "pcs constraint location fence-nova rule resource-discovery=never score=0 osprole eq controller"
 
     - name: Create pacemaker constraint for fence-nova to start after galera
       shell: "pcs constraint order promote galera-master then fence-nova require-all=false"
+      when: release not in [ 'pike', 'rhos-12' ]
 
     - name: Create nova-compute order constraint on fence-nova
       shell: "pcs constraint order start fence-nova then nova-compute-clone"
+      when: release not in [ 'pike', 'rhos-12' ]
 
     - name: Set cluster recheck interval to 1 minute
       shell: "pcs property set cluster-recheck-interval=1min"
@@ -298,6 +315,14 @@
       with_items:
           - nova-compute-checkevacuate
           - nova-compute
+      when: release not in [ 'pike', 'rhos-12' ]
+
+    - name: Create dummy compute unfence trigger (Pike/RHOS-12)
+      shell: |
+        pcs resource create compute-unfence-trigger ocf:pacemaker:Dummy op start requires="unfencing" --clone --disabled
+        pcs constraint location compute-unfence-trigger-clone rule resource-discovery=never score=-INFINITY osprole ne compute
+        pcs resource enable compute-unfence-trigger
+      when: release in [ 'pike', 'rhos-12' ]
 
     - name: Enable compute nodes resources (others)
       shell: "pcs resource enable {{ item }}"
