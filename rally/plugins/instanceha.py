@@ -1,5 +1,6 @@
 import six
 import time
+import socket
 
 from os import path
 from rally.common import logging
@@ -122,6 +123,7 @@ def one_killing_iteration(self, server, fip, computes, disruptor_cmd,
 
     server_admin = self.admin_clients("nova").servers.get(server.id)
     host_name_pre = getattr(server_admin, "OS-EXT-SRV-ATTR:host")
+    host_name_ext = host_name_pre.split('.')[0] + ".external"
     hypervisors = self.admin_clients("nova").hypervisors.list()
     hostnames = []
     for hypervisor in hypervisors:
@@ -129,7 +131,7 @@ def one_killing_iteration(self, server, fip, computes, disruptor_cmd,
         if getattr(hypervisor, "hypervisor_hostname") == host_name_pre:
             hypervisor_id = getattr(hypervisor, "id")
     hypervisor = self.admin_clients("nova").hypervisors.get(hypervisor_id)
-    hypervisor_ip = getattr(hypervisor, "host_ip")
+    hypervisor_ip = socket.gethostbyname(host_name_ext.strip())
 
     if not disruptor_cmd:
         disruptor_cmd = {
