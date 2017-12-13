@@ -252,6 +252,10 @@
           pcs stonith show ipmilan-{{ hostvars[item]['ansible_hostname'] }}
       with_items: "{{ groups['compute'] }}"
 
+    - name: Set requires to fencing as default for all resources (Pike/RHOS-12)
+      shell: "pcs resource defaults requires=fencing"
+      when: release in [ 'pike', 'rhos-12' ]
+
     - name: Create fence-nova pacemaker resource
       shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 --force"
       when: instance_ha_shared_storage|bool and release not in [ 'pike', 'rhos-12' ]
@@ -317,7 +321,7 @@
           - nova-compute
       when: release not in [ 'pike', 'rhos-12' ]
 
-    - name: Create dummy compute unfence trigger (Pike/RHOS-12)
+    - name: Create compute unfence resource to override default resource requires (Pike/RHOS-12)
       shell: |
         pcs resource create compute-unfence-trigger ocf:pacemaker:Dummy op start requires="unfencing" --clone --disabled
         pcs constraint location compute-unfence-trigger-clone rule resource-discovery=never score=-INFINITY osprole ne compute
