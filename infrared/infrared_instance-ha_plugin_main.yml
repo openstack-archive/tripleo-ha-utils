@@ -1,0 +1,32 @@
+---
+- name: check ANSIBLE_ROLES_PATH variable
+  hosts: localhost
+  tasks:
+
+  - shell: |
+      echo $ANSIBLE_ROLES_PATH
+    name: check $ANSIBLE_ROLES_PATH variable
+    register: ansible_roles_path_out
+
+  - fail:
+      msg: Please export ANSIBLE_ROLES_PATH='plugins/tripleo-quickstart-utils/roles' ; Before running this playbook with infrared.
+    when: '"tripleo-quickstart-utils" not in ansible_roles_path_out.stdout'
+
+
+
+- name: Configure Instance HA
+  hosts: undercloud
+  gather_facts: yes
+
+  tasks:
+
+  - include_role:
+      name: instance-ha
+
+    vars:
+
+      instance_ha_action: '{{ install.instance_ha_action }}'
+      release: '{{ install.release }}'
+      stonith_devices: '{{ install.stonith_devices }}'
+      instance_ha_shared_storage: '{{ install.instance_ha_shared_storage }}'
+
