@@ -142,7 +142,7 @@
     - "{{ groups['compute'] }}"
   when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
-- name: Enable neutron-openvswitch-agent on compute
+- name: Enable openstack-ceilometer-compute on compute
   service:
     name: openstack-ceilometer-compute
     state: started

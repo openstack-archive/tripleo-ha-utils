@@ -29,7 +29,7 @@
     - "{{ groups['compute'] }}"
   when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
-- name: Disable neutron-openvswitch-agent on compute
+- name: Disable openstack-ceilometer-compute on compute
   service:
     name: openstack-ceilometer-compute
     state: stopped
@@ -68,7 +68,7 @@
     - "{{ groups['controller'] }}"
     - "{{ groups['compute'] }}"
 
-- name: Copy autkey on all the overcloud nodes
+- name: Copy authkey on all the overcloud nodes
   become: yes
   copy:
      src: /tmp/authkey
