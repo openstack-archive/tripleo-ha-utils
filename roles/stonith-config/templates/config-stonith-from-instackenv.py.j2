@@ -57,7 +57,7 @@ except:
 # Parse instances
 for instance in nt.servers.list():
  for node in data["nodes"]:
-  if (node["mac"][0] == instance.addresses['ctlplane'][0]['OS-EXT-IPS-MAC:mac_addr'] 
+  if (node["mac"][0].lower() == instance.addresses['ctlplane'][0]['OS-EXT-IPS-MAC:mac_addr']
       and
       (
        ('controller' in instance.name and fence_devices in ['controllers','all'])
@@ -68,7 +68,11 @@ for instance in nt.servers.list():
    if (fence_config == 'uninstall'):
     print('pcs stonith delete ipmilan-{} || /bin/true'.format(instance.name))
    elif (fence_config == 'install'):
-    print('pcs stonith create ipmilan-{} fence_ipmilan pcmk_host_list="{}" ipaddr="{}" login="{}" passwd="{}" lanplus="true" delay=20 op monitor interval=60s'
+    try:
+      print('pcs stonith create ipmilan-{} fence_ipmilan pcmk_host_list="{}" ipaddr="{}" login="{}" passwd="{}" ipport={} lanplus="true" delay=20 op monitor interval=60s'
+          .format(instance.name,instance.name,node["pm_addr"],node["pm_user"],node["pm_password"],node["pm_port"]))
+    except:
+      print('pcs stonith create ipmilan-{} fence_ipmilan pcmk_host_list="{}" ipaddr="{}" login="{}" passwd="{}" lanplus="true" delay=20 op monitor interval=60s'
           .format(instance.name,instance.name,node["pm_addr"],node["pm_user"],node["pm_password"]))
     print('pcs constraint location ipmilan-{} avoids {}'
           .format(instance.name,instance.name))
