@@ -8,25 +8,70 @@
     name: check $ANSIBLE_ROLES_PATH variable
     register: ansible_roles_path_out
 
-  - fail:
+  - name: check $ANSIBLE_ROLES_PATH is set
+    fail:
       msg: Please export ANSIBLE_ROLES_PATH='plugins/tripleo-quickstart-utils/roles' ; Before running this playbook with infrared.
     when: '"tripleo-quickstart-utils" not in ansible_roles_path_out.stdout'
 
 
+#manual  override because of https://github.com/ansible/ansible/issues/26336
+#- name: Configure Instance HA
+#  hosts: undercloud
+#  gather_facts: yes
+#
+#  tasks:
+#
+#  - include_role:
+#      name: instance-ha
+
+#This executes all from the undercloud itself:
+
 
 - name: Configure Instance HA
   hosts: undercloud
-  gather_facts: yes
-
+  gather_facts: no
   tasks:
 
-  - include_role:
-      name: instance-ha
+  - name: create ansible hosts file
+    template:
+      src: templates/ansible_hosts.yml.j2
+      dest: /home/stack/hosts
+      owner: stack
+      group: stack
+      mode: 0644
 
-    vars:
+  - name: create ssh.config.ansible file
+    shell: |
+      source /home/stack/stackrc
+      echo -e "Host undercloud\n Hostname 127.0.0.1\n IdentityFile
+      /home/stack/.ssh/id_rsa\n User stack\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ssh.config.ansible
+      openstack server list -c Name -c Networks | awk '/ctlplane/ {print $2, $4}' | sed s/ctlplane=//g | while read node; do node_name=$(echo $node | cut -f 1 -d " "); node_ip=$(echo $node | cut -f 2 -d " "); echo -e "Host $node_name\n Hostname $node_ip\n IdentityFile /home/stack/.ssh/id_rsa\n User heat-admin\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n"; done >> ssh.config.ansible
 
-      instance_ha_action: '{{ install.instance_ha_action }}'
-      release: '{{ install.release }}'
-      stonith_devices: '{{ install.stonith_devices }}'
-      instance_ha_shared_storage: '{{ install.instance_ha_shared_storage }}'
+  - name: get tripleo-quickstart-utils repo
+    git:
+      repo: 'https://github.com/redhat-openstack/tripleo-quickstart-utils'
+      dest: /home/stack/tripleo-quickstart-utils
 
+  - name: create ansible env file
+    shell: |
+      cat >/home/stack/ansible_ha.env<<EOF
+      export ANSIBLE_INVENTORY="/home/stack/hosts"
+      export ANSIBLE_SSH_ARGS="-F /home/stack/ssh.config.ansible"
+      export ANSIBLE_CONFIG="/home/stack/ansible.cfg"
+
+  - name: create ansible.cfg file
+    shell: |
+      printf "[defaults]\nroles_path = /home/stack/tripleo-quickstart-utils/roles"  > /home/stack/ansible.cfg
+
+  - name: run instance-ha deploy script
+    shell: |
+      source /home/stack/ansible_ha.env
+      ansible-playbook -v /home/stack/tripleo-quickstart-utils/playbooks
+      /overcloud-instance-ha.yml -e release={{release}} -e stonith_devices={{stonith_devices}} -e instance_ha_shared_storage={{instance_ha_shared_storage}} -e instance_ha_action={{instance_ha_action}}
+    register: instance_ha_deploy_outcome
+
+  vars:
+    instance_ha_action: '{{ install.instance_ha_action }}'
+    release: '{{ install.release }}'
+    stonith_devices: '{{ install.stonith_devices }}'
+    instance_ha_shared_storage: '{{ install.instance_ha_shared_storage }}'
