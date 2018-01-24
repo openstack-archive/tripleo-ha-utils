@@ -5,4 +5,3 @@ test_ha_keystone_constraint_removal: false
 test_ha_ng_a: false
 test_ha_ng_b: false
 test_ha_ng_c: false
-test_ha_instance: true

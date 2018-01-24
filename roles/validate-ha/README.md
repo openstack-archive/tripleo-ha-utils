@@ -1,8 +1,8 @@
 validate-ha
 ===========
 
-This role acts on an already deployed tripleo environment, testing all HA
-related functionalities of the installation.
+This role acts on an already deployed tripleo environment, testing HA related
+functionalities of the installation.
 
 Requirements
 ------------
@@ -13,6 +13,7 @@ This role tests also instances spawning and to make this working the
 definition of the floating network must be passed.
 It can be contained in a config file, like this:
 
+    private_network_cidr: "192.168.1.0/24"
     public_physical_network: "floating"
     floating_ip_cidr: "10.0.0.0/24"
     public_net_pool_start: "10.0.0.191"
@@ -45,7 +46,6 @@ Start every systemd resource
 Start every systemd resource
   - **test_ha_ng_c**: Stop Galera and Rabbitmq, wait 20 minutes to see if
 something fails
-- **test_ha_instance**: Instance deployment (**all**)
 
 It is also possible to omit (or add) tests not made for the specific release,
 using the above vars, by passing to the command line variables like this:
@@ -55,8 +55,8 @@ using the above vars, by passing to the command line variables like this:
     -e test_ha_ng_a=true \
     ...
 
-In this case we will not check for failed actions (which is test that otherwise
-will be done in mitaka) and we will force the execution of the "ng_a" test
+In this case we will not check for failed actions, a test that otherwise would
+have been done in mitaka, and we will force the execution of the "ng_a" test
 described earlier, which is originally executed just in newton versions or
 above.
 
@@ -71,6 +71,7 @@ described [here](https://github.com/redhat-openstack/tripleo-quickstart-utils/tr
     ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-validate-ha.yml \
       -e release=ocata \
       -e local_working_dir=/home/stack \
+      -e private_net_cidr="192.168.1.0/24" \
       -e public_physical_network="floating" \
       -e floating_ip_cidr="10.0.0.0/24" \
       -e public_net_pool_start="10.0.0.191" \

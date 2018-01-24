@@ -1,0 +1,46 @@
+---
+
+- name: Load image in Glance to be used by Heat
+  shell: |
+    source {{ working_dir }}/overcloudrc
+    openstack image create \
+      --disk-format {{ validate_ha_heat_instance_image_format }} \
+      --file {{ working_dir }}/{{ heat_image_name }} \
+      --format value \
+      --column "id" \
+      validate_ha_image
+
+- name: Execute environment validation via Heat
+  shell: |
+    source {{ working_dir }}/overcloudrc
+    openstack stack create \
+      --environment validate-ha-heat-environment.yaml \
+      --template validate-ha-heat-template.yaml \
+      --wait \
+      {{ stack_name }}
+
+- name: Get instance IP
+  shell: |
+    source {{ working_dir }}/overcloudrc
+    openstack stack show -c outputs -f json {{ stack_name }} | \
+      jq --raw-output '.outputs[] | select( .output_key == "server_public_ip") | .output_value'
+  register: instance_ip
+
+- name: Wait up to one minute for the instance to be reachable
+  wait_for:
+    host: "{{ instance_ip.stdout }}"
+    port: 22
+    timeout: 60
+
+- name: Clean the created stack
+  shell: |
+    source {{ working_dir }}/overcloudrc
+    openstack stack delete \
+      --yes \
+      --wait \
+      {{ stack_name }}
+
+- name: Clean image in Glance
+  shell: |
+    source {{ working_dir }}/overcloudrc
+    openstack image delete validate_ha_image

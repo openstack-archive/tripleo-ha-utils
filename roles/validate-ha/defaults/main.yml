@@ -4,10 +4,19 @@ working_dir: "/home/stack"
 validate_ha_logs_dir: "{{ working_dir }}/validate_ha_logs"
 overcloud_working_dir: "/home/heat-admin"
 
-environment_file: environment.j2
-apply_workarounds: false
-workarounds_script: workarounds.sh.j2
+validate_ha_heat_environment: "validate-ha-heat-environment.yaml.j2"
+validate_ha_heat_template: "validate-ha-heat-template.yaml.j2"
+validate_ha_heat_instance_image_format: "qcow2"
+validate_ha_heat_instance_image_location: "http://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img"
+validate_ha_heat_instance_volume_gb: 1
 
+private_net_name: "private-network"
+private_subnet_name: "private-subnet"
+public_net_name: "public-network"
+public_subnet_name: "public-subnet"
+private_net_cidr: "10.1.1.0/24"
+public_physical_network: "datacentre"
+public_network_type: "flat"
 floating_ip_cidr: "{{ undercloud_network_cidr|default('192.0.2.0/24') }}"
 floating_ip_start: "{{ floating_ip_cidr|nthhost(100) }}"
 floating_ip_end: "{{ floating_ip_cidr|nthhost(120) }}"

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Raoul Scarazzini (rasca@redhat.com)
-# This script provides a testing suite for TripleO/Director OpenStack HA (so with Pacemaker) environments
+# This script provides a testing suite for TripleO HA environments
 
 # Define main workdir
 WORKDIR=$(dirname $0)
@@ -23,10 +23,6 @@ if [ $# -gt 0 ]
     -h|-\?|--help)
         usage
         exit
-        ;;
-    -u|--undercloud)
-        undercloud=true
-        shift
         ;;
     -t|--test)
         test_sequence="$2"
@@ -55,15 +51,12 @@ if [ $# -gt 0 ]
   exit 1
 fi
 
-# Populating overcloud elements if not on undercloud
-if [ "$undercloud" != true ]
- then
-  echo -n "$(date) - Populationg overcloud elements..."
-  OVERCLOUD_CORE_RESOURCES="galera redis rabbitmq"
-  OVERCLOUD_RESOURCES=$(sudo pcs resource show | egrep '^ (C|[a-Z])' | sed 's/.* \[\(.*\)\]/\1/g' | sed 's/ \(.*\)(.*):.*/\1/g' | sort)
-  OVERCLOUD_SYSTEMD_RESOURCES=$(sudo pcs config show | egrep "Resource:.*systemd"|grep -v "haproxy"|awk '{print $2}')
-  echo "OK"
-fi
+# Populating overcloud elements
+echo -n "$(date) - Populationg overcloud elements..."
+OVERCLOUD_CORE_RESOURCES="galera redis rabbitmq"
+OVERCLOUD_RESOURCES=$(sudo pcs resource show | egrep '^ (C|[a-Z])' | sed 's/.* \[\(.*\)\]/\1/g' | sed 's/ \(.*\)(.*):.*/\1/g' | sort)
+OVERCLOUD_SYSTEMD_RESOURCES=$(sudo pcs config show | egrep "Resource:.*systemd"|grep -v "haproxy"|awk '{print $2}')
+echo "OK"
 
 if [ -f "$test_sequence" ]
  then

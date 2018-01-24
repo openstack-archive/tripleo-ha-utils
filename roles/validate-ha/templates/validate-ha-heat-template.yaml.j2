@@ -1,0 +1,192 @@
+heat_template_version: 2016-10-14
+description: spawning a server
+
+parameters:
+  private_net_name:
+    type: string
+    default: "private"
+    description: Name of private network into which servers get deployed
+  private_subnet_name:
+    type: string
+    default: private_subnet
+    description: Name of private subnet into which servers get deployed
+  private_net_cidr:
+    type: string
+    description: Private network address (CIDR notation)
+  public_physical_network:
+    type: string
+    default: "datacentre"
+    description: Physical network name
+  public_network_type:
+    type: string
+    default: "flat"
+    description: Type of the physical network (flat or vlan)
+    constraints:
+      - allowed_values:
+        - vlan
+        - flat
+  public_net_name:
+    type: string
+    default: public
+    description: Name of public network into which servers get deployed
+  public_subnet_name:
+    type: string
+    default: public_subnet
+    description: Name of public subnet into which servers get deployed
+  public_net_cidr:
+    type: string
+    description: Public network address (CIDR notation)
+  public_net_gateway:
+    type: string
+    description: Public network gateway address
+  public_net_pool_start:
+    type: string
+    description: Start of public network IP address allocation pool
+  public_net_pool_end:
+    type: string
+    description: End of public network IP address allocation pool
+
+resources:
+
+  ###########
+  # Network #
+  ###########
+
+  private_net:
+    type: OS::Neutron::Net
+    properties:
+      name: { get_param: private_net_name }
+
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: { get_param: private_subnet_name }
+      network_id: { get_resource: private_net }
+      cidr: { get_param: private_net_cidr }
+
+  public_net:
+    type: OS::Neutron::ProviderNet
+    properties:
+      name: { get_param: public_net_name }
+      router_external: true
+      physical_network: { get_param: public_physical_network }
+      network_type: { get_param: public_network_type }
+
+  public_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      name: { get_param: public_subnet_name }
+      network_id: { get_resource: public_net }
+      cidr: { get_param: public_net_cidr }
+      gateway_ip: { get_param: public_net_gateway }
+      allocation_pools:
+        - start: { get_param: public_net_pool_start }
+          end: { get_param: public_net_pool_end }
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_resource: public_net }
+
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: private_subnet }
+
+  public_net_port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_resource: private_net }
+      fixed_ips:
+        - subnet: { get_resource: private_subnet }
+      security_groups: [{ get_resource: public_security_group }]
+
+  public_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: { get_resource: public_net }
+      port_id: { get_resource: public_net_port }
+
+  public_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      description: Add security group rules for the multi-tier architecture
+      name: pingandssh
+      rules:
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: tcp
+          port_range_min: 80
+          port_range_max: 80
+        - remote_ip_prefix: 0.0.0.0/0
+          protocol: icmp
+
+  ###########
+  # Volume  #
+  ###########
+
+  instance_volume:
+    type: OS::Cinder::Volume
+    properties:
+      name: "instance_volume"
+      size: {{ validate_ha_heat_instance_volume_gb }}
+      image: "validate_ha_image"
+
+  ###########
+  # Keypair #
+  ###########
+
+  instance_keypair:
+    type: OS::Nova::KeyPair
+    properties:
+      name: "instance_keypair"
+      save_private_key: "true"
+
+  ###########
+  # Flavor  #
+  ###########
+
+  instance_flavor:
+    type: OS::Nova::Flavor
+    properties:
+      name: "instance_flavor"
+      ephemeral: 0
+      ram: 2048
+      disk: 10
+      vcpus: 2
+
+  ###########
+  # Server  #
+  ###########
+
+  instance:
+    type: OS::Nova::Server
+    properties:
+      name: "validate_ha_instance"
+      flavor: { get_resource: instance_flavor }
+      key_name: { get_resource: instance_keypair }
+      networks:
+        - port: { get_resource: public_net_port }
+      block_device_mapping: [{ device_name: "vda", volume_id : { get_resource : instance_volume }, delete_on_termination : "true" }]
+
+outputs:
+  server_private_ip:
+    description: IP address of first web server in private network
+    value: { get_attr: [ instance, first_address ] }
+
+  server_public_ip:
+    description: Floating IP address of the web server
+    value: { get_attr: [ public_floating_ip, floating_ip_address ] }
+
+  public_key:
+    description: The public key of the keypair.
+    value: { get_attr: [instance_keypair, public_key] }
+
+  private_key:
+    description: The private key of the keypair.
+    value: { get_attr: [instance_keypair, private_key] }

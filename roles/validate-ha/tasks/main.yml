@@ -1,34 +1,4 @@
 ---
-- name: Creating the environment file on undercloud
-  template:
-    src: "{{ environment_file }}"
-    dest: "{{ working_dir }}/environment"
-    mode: 0600
-
-- name: Load the workarounds script on the undercloud
-  template:
-    src: "{{ workarounds_script }}"
-    dest: "{{ working_dir }}/workarounds.sh"
-    mode: 0755
-  when: apply_workarounds
-
-- name: Execute workarounds script on the undercloud
-  shell: >
-    "{{ working_dir }}/workarounds.sh"
-  when: apply_workarounds
-
-- name: Copy ha-test-suite on undercloud
-  synchronize:
-    src: "{{ local_working_dir }}/tripleo-quickstart-utils/tools/ha-test-suite/"
-    dest: "{{ working_dir }}/ha-test-suite"
-    use_ssh_args: true
-
-- name: Copy ha-test-suite on controllers
-  shell: >
-    /usr/bin/rsync --delay-updates -F --compress --archive -e 'ssh -F {{ local_working_dir }}/ssh.config.ansible' {{ local_working_dir }}/tripleo-quickstart-utils/tools/ha-test-suite {{ hostvars[item]['ansible_hostname'] }}:
-  delegate_to: "localhost"
-  with_items:
-    - "{{ groups['controller'] }}"
 
 - name: Include test sequence depending on release
   include_vars:
@@ -38,6 +8,67 @@
 - name: Create directory on the undercloud to store test results
   file: path={{ validate_ha_logs_dir }} state=directory
 
+- name: Copy ha-test-suite on controllers
+  shell: >
+    /usr/bin/rsync --delay-updates -F --compress --archive -e 'ssh -F {{ local_working_dir }}/ssh.config.ansible' {{ local_working_dir }}/tripleo-quickstart-utils/tools/ha-test-suite {{ hostvars[item]['ansible_hostname'] }}:
+  delegate_to: "localhost"
+  with_items:
+    - "{{ groups['controller'] }}"
+
+- name: Create the environment template on undercloud
+  template:
+    src: "{{ validate_ha_heat_environment }}"
+    dest: "{{ working_dir }}/validate-ha-heat-environment.yaml"
+    mode: 0600
+
+- name: Create the test template on undercloud
+  template:
+    src: "{{ validate_ha_heat_template }}"
+    dest: "{{ working_dir }}/validate-ha-heat-template.yaml"
+    mode: 0600
+
+- name: Download and uncompress (if necessary) image file for Heat
+  shell: |
+    image_url="{{ validate_ha_heat_instance_image_location }}"
+    image_file=$(basename $image_url)
+
+    curl -s -o $image_file $image_url
+
+    case "$image_file" in
+       *.tar)
+           image_name=$(tar xvf $image_file)
+           ;;
+       *.tar.gz|*.tgz)
+           image_name=$(tar xzvf $image_file)
+           ;;
+       *.tar.bz2|*.tbz2)
+           image_name=$(tar xjvf $image_file)
+           ;;
+       *.tar.xz|*.txz)
+           image_name=$(tar xJf $image_file)
+           ;;
+       *.bz2)
+           bunzip2 --force --quiet $image_file
+           image_name=${image_file%.*};
+           ;;
+       *.gz)
+           gunzip --force --quiet $image_file
+           image_name=${image_file%.*};
+           ;;
+       *.xz)
+           xz --force --quiet --decompress $image_file
+           image_name=${image_file%.*};
+           ;;
+       *) image_name=$image_file
+          ;;
+    esac
+
+    echo $image_name
+  register: image_name
+
+- set_fact:
+    heat_image_name: "{{ image_name.stdout }}"
+
 # Test: failed actions
 - block:
     - name: HA test - Failed actions (overcloud)
@@ -45,6 +76,9 @@
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_check-failed-actions
       register: test_ha_failed_actions_cmd
+    - include: heat-validation.yml
+      vars:
+        stack_name: "test_ha_failed_actions"
   always:
     - name: copy stdout test result to undercloud and check command
       copy: content="{{ test_ha_failed_actions_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_failed_actions_stdout.log"
@@ -61,6 +95,9 @@
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_master-slave -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_master-slave
       register: test_ha_master_slave_cmd
+    - include: heat-validation.yml
+      vars:
+        stack_name: "test_ha_master_slave"
   always:
     - name: copy stdout test result to undercloud and check command
       copy: content="{{ test_ha_master_slave_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_master_slave_stdout.log"
@@ -77,6 +114,9 @@
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_keystone-constraint-removal -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_keystone-constraint-removal
       register: test_ha_keystone_stop_cmd
+    - include: heat-validation.yml
+      vars:
+        stack_name: "test_ha_keystone_stop"
   always:
     - name: copy stdout test result to undercloud and check command
       copy: content="{{ test_ha_keystone_stop_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_keystone_stop_stdout.log"
@@ -93,6 +133,9 @@
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_keystone-constraint-removal -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_keystone-constraint-removal
       register: test_ha_keystone_constraint_removal_cmd
+    - include: heat-validation.yml
+      vars:
+        stack_name: "test_ha_keystone_constraint_removal"
   always:
     - name: copy stdout test result to undercloud and check command
       copy: content="{{ test_ha_keystone_constraint_removal_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_keystone_constraint_removal_stdout.log"
@@ -109,6 +152,9 @@
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_pacemaker-light-a -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_pacemaker-light
       register: test_ha_ng_a_cmd
+    - include: heat-validation.yml
+      vars:
+        stack_name: "test_ha_ng_a"
   always:
     - name: copy stdout test result to undercloud and check command
       copy: content="{{ test_ha_ng_a_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_a_stdout.log"
@@ -125,6 +171,9 @@
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_pacemaker-light-b -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_pacemaker-light
       register: test_ha_ng_b_cmd
+    - include: heat-validation.yml
+      vars:
+        stack_name: "test_ha_ng_b"
   always:
     - name: copy stdout test result to undercloud and check command
       copy: content="{{ test_ha_ng_b_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_b_stdout.log"
@@ -141,6 +190,9 @@
       shell: >
         {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_pacemaker-light-c -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_pacemaker-light
       register: test_ha_ng_c_cmd
+    - include: heat-validation.yml
+      vars:
+        stack_name: "test_ha_ng_c"
   always:
     - name: copy stdout test result to undercloud and check command
       copy: content="{{ test_ha_ng_c_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_c_stdout.log"
@@ -150,17 +202,7 @@
     - fail: msg="{{ test_ha_ng_c_cmd.stderr }}"
   when: test_ha_ng_c|bool
 
-# Test: Instance deployment
-- block:
-    - name: HA Test instance deploy on the overcloud (undercloud)
-      shell: >
-        {{ working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ working_dir }}/ha-test-suite/test/test_instance-creation -r {{ working_dir }}/ha-test-suite/recovery/recovery_instance-creation -u
-      register: test_ha_instance_cmd
-  always:
-    - name: copy stdout test result to undercloud and check command
-      copy: content="{{ test_ha_instance_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_instance_stdout.log"
-  rescue:
-    - name: copy stderr test result to undercloud and check command
-      copy: content="{{ test_ha_instance_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_instance_stderr.log"
-    - fail: msg="{{ test_ha_instance_cmd.stderr }}"
-  when: test_ha_instance|bool
+- name: Remove image file
+  file:
+     path: "{{ working_dir }}/{{ heat_image_name }}"
+     state: absent
