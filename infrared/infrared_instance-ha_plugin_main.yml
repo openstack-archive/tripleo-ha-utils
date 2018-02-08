@@ -43,8 +43,7 @@
   - name: create ssh.config.ansible file
     shell: |
       source /home/stack/stackrc
-      echo -e "Host undercloud\n Hostname 127.0.0.1\n IdentityFile
-      /home/stack/.ssh/id_rsa\n User stack\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ssh.config.ansible
+      echo -e "Host undercloud\n Hostname 127.0.0.1\n IdentityFile /home/stack/.ssh/id_rsa\n User stack\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n" > ssh.config.ansible
       openstack server list -c Name -c Networks | awk '/ctlplane/ {print $2, $4}' | sed s/ctlplane=//g | while read node; do node_name=$(echo $node | cut -f 1 -d " "); node_ip=$(echo $node | cut -f 2 -d " "); echo -e "Host $node_name\n Hostname $node_ip\n IdentityFile /home/stack/.ssh/id_rsa\n User heat-admin\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n"; done >> ssh.config.ansible
 
   - name: get tripleo-quickstart-utils repo
@@ -66,8 +65,7 @@
   - name: run instance-ha deploy script
     shell: |
       source /home/stack/ansible_ha.env
-      ansible-playbook -v /home/stack/tripleo-quickstart-utils/playbooks
-      /overcloud-instance-ha.yml -e release={{release}} -e stonith_devices={{stonith_devices}} -e instance_ha_shared_storage={{instance_ha_shared_storage}} -e instance_ha_action={{instance_ha_action}}
+      ansible-playbook -v /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release={{release}} -e stonith_devices={{stonith_devices}} -e instance_ha_shared_storage={{instance_ha_shared_storage}} -e instance_ha_action={{instance_ha_action}}
     register: instance_ha_deploy_outcome
 
   vars:
