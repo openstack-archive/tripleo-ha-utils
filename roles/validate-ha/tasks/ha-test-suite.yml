@@ -1,0 +1,23 @@
+---
+
+# Execute ha-test-suite test
+- block:
+    - name: Testing {{ ha_test_name }} with recovery {{ ha_recovery_name }}"
+      delegate_to: "{{ groups.controller[0] }}"
+      shell: >
+        {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh \
+         -t {{ overcloud_working_dir }}/ha-test-suite/test/{{ ha_test_name }} \
+         -r {{ overcloud_working_dir }}/ha-test-suite/recovery/{{ ha_recovery_name }}
+      register: ha_test_cmd
+
+    - include_tasks: heat-validation.yml
+      vars:
+        stack_name: "stack_{{ ha_test_name }}"
+
+  always:
+    - name: Copy stdout for test {{ ha_test_name }} to undercloud
+      copy: content="{{ ha_test_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/{{ ha_test_name }}_stdout.log"
+  rescue:
+    - name: Copy stderr for test {{ ha_test_name }} to undercloud
+      copy: content="{{ ha_test_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/{{ ha_test_name }}_stderr.log"
+    - fail: msg="{{ ha_test_cmd.stderr }}"

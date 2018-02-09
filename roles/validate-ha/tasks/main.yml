@@ -70,137 +70,60 @@
     heat_image_name: "{{ image_name.stdout }}"
 
 # Test: failed actions
-- block:
-    - name: HA test - Failed actions (overcloud)
-      delegate_to: "{{ groups.controller[0] }}"
-      shell: >
-        {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_check-failed-actions
-      register: test_ha_failed_actions_cmd
-    - include: heat-validation.yml
-      vars:
-        stack_name: "test_ha_failed_actions"
-  always:
-    - name: copy stdout test result to undercloud and check command
-      copy: content="{{ test_ha_failed_actions_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_failed_actions_stdout.log"
-  rescue:
-    - name: copy stderr test result to undercloud and check command
-      copy: content="{{ test_ha_failed_actions_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_failed_actions_stderr.log"
-    - fail: msg="{{ test_ha_failed_actions_cmd.stderr }}"
+- name: HA test - Failed actions
+  vars:
+    ha_test_name: "test_ha_failed_actions"
+    ha_recovery_name: ""
+  include_tasks: ha-test-suite.yml
   when: test_ha_failed_actions|bool
 
 # Test: Master/Slave
-- block:
-    - name: HA test - Master/Slave core resource stop and start (overcloud)
-      delegate_to: "{{ groups.controller[0] }}"
-      shell: >
-        {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_master-slave -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_master-slave
-      register: test_ha_master_slave_cmd
-    - include: heat-validation.yml
-      vars:
-        stack_name: "test_ha_master_slave"
-  always:
-    - name: copy stdout test result to undercloud and check command
-      copy: content="{{ test_ha_master_slave_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_master_slave_stdout.log"
-  rescue:
-    - name: copy stderr test result to undercloud and check command
-      copy: content="{{ test_ha_master_slave_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_master_slave_stderr.log"
-    - fail: msg="{{ test_ha_master_slave_cmd.stderr }}"
+- name: HA test - Master/Slave core resource stop and start
+  vars:
+    ha_test_name: "test_master-slave"
+    ha_recovery_name: "recovery_master-slave"
+  include_tasks: ha-test-suite.yml
   when: test_ha_master_slave|bool
 
 # Test: Keystone stop
-- block:
-    - name: HA test Keystone stop (overcloud)
-      delegate_to: "{{ groups.controller[0] }}"
-      shell: >
-        {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_keystone-constraint-removal -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_keystone-constraint-removal
-      register: test_ha_keystone_stop_cmd
-    - include: heat-validation.yml
-      vars:
-        stack_name: "test_ha_keystone_stop"
-  always:
-    - name: copy stdout test result to undercloud and check command
-      copy: content="{{ test_ha_keystone_stop_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_keystone_stop_stdout.log"
-  rescue:
-    - name: copy stderr test result to undercloud and check command
-      copy: content="{{ test_ha_keystone_stop_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_keystone_stop_stderr.log"
-    - fail: msg="{{ test_ha_keystone_stop_cmd.stderr }}"
+- name: HA test - Keystone stop
+  vars:
+    ha_test_name: "test_keystone-stop"
+    ha_recovery_name: "recovery_keystone-stop"
+  include_tasks: ha-test-suite.yml
   when: test_ha_keystone_stop|bool
 
 # Test: Keystone removal
-- block:
-    - name: HA test Keystone removal (overcloud)
-      delegate_to: "{{ groups.controller[0] }}"
-      shell: >
-        {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_keystone-constraint-removal -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_keystone-constraint-removal
-      register: test_ha_keystone_constraint_removal_cmd
-    - include: heat-validation.yml
-      vars:
-        stack_name: "test_ha_keystone_constraint_removal"
-  always:
-    - name: copy stdout test result to undercloud and check command
-      copy: content="{{ test_ha_keystone_constraint_removal_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_keystone_constraint_removal_stdout.log"
-  rescue:
-    - name: copy stderr test result to undercloud and check command
-      copy: content="{{ test_ha_keystone_constraint_removal_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_keystone_constraint_removal_stderr.log"
-    - fail: msg="{{ test_ha_keystone_constraint_removal_cmd.stderr }}"
+- name: HA test - Keystone constraint removal
+  vars:
+    ha_test_name: "test_keystone-constraint-removal"
+    ha_recovery_name: "recovery_keystone-constraint-removal"
+  include_tasks: ha-test-suite.yml
   when: test_ha_keystone_constraint_removal|bool
 
 # Test: NG A
-- block:
-    - name: HA test NG A (overcloud)
-      delegate_to: "{{ groups.controller[0] }}"
-      shell: >
-        {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_pacemaker-light-a -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_pacemaker-light
-      register: test_ha_ng_a_cmd
-    - include: heat-validation.yml
-      vars:
-        stack_name: "test_ha_ng_a"
-  always:
-    - name: copy stdout test result to undercloud and check command
-      copy: content="{{ test_ha_ng_a_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_a_stdout.log"
-  rescue:
-    - name: copy stderr test result to undercloud and check command
-      copy: content="{{ test_ha_ng_a_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_a_stderr.log"
-    - fail: msg="{{ test_ha_ng_a_cmd.stderr }}"
+- name: HA test - Pacemaker light test A
+  vars:
+    ha_test_name: "test_pacemaker-light-a"
+    ha_recovery_name: "recovery_pacemaker-light"
+  include_tasks: ha-test-suite.yml
   when: test_ha_ng_a|bool
 
 # Test: NG B
-- block:
-    - name: HA test NG B (overcloud)
-      delegate_to: "{{ groups.controller[0] }}"
-      shell: >
-        {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_pacemaker-light-b -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_pacemaker-light
-      register: test_ha_ng_b_cmd
-    - include: heat-validation.yml
-      vars:
-        stack_name: "test_ha_ng_b"
-  always:
-    - name: copy stdout test result to undercloud and check command
-      copy: content="{{ test_ha_ng_b_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_b_stdout.log"
-  rescue:
-    - name: copy stderr test result to undercloud and check command
-      copy: content="{{ test_ha_ng_b_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_b_stderr.log"
-    - fail: msg="{{ test_ha_ng_b_cmd.stderr }}"
+- name: HA test - Pacemaker light test B
+  vars:
+    ha_test_name: "test_pacemaker-light-b"
+    ha_recovery_name: "recovery_pacemaker-light"
+  include_tasks: ha-test-suite.yml
   when: test_ha_ng_b|bool
 
 # Test: NG C
-- block:
-    - name: HA test NG C (overcloud)
-      delegate_to: "{{ groups.controller[0] }}"
-      shell: >
-        {{ overcloud_working_dir }}/ha-test-suite/ha-test-suite.sh -t {{ overcloud_working_dir }}/ha-test-suite/test/test_pacemaker-light-c -r {{ overcloud_working_dir }}/ha-test-suite/recovery/recovery_pacemaker-light
-      register: test_ha_ng_c_cmd
-    - include: heat-validation.yml
-      vars:
-        stack_name: "test_ha_ng_c"
-  always:
-    - name: copy stdout test result to undercloud and check command
-      copy: content="{{ test_ha_ng_c_cmd.stdout }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_c_stdout.log"
-  rescue:
-    - name: copy stderr test result to undercloud and check command
-      copy: content="{{ test_ha_ng_c_cmd.stderr }}" dest="{{ validate_ha_logs_dir }}/test_ha_ng_c_stderr.log"
-    - fail: msg="{{ test_ha_ng_c_cmd.stderr }}"
-  when: test_ha_ng_c|bool
+- name: HA test - Pacemaker light test B
+  vars:
+    ha_test_name: "test_pacemaker-light-b"
+    ha_recovery_name: "recovery_pacemaker-light"
+  include_tasks: ha-test-suite.yml
+  when: test_ha_ng_b|bool
 
 - name: Remove image file
   file:
