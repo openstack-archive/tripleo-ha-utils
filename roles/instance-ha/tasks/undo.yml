@@ -1,49 +1,4 @@
 ---
-- name: Get the name of the stack
-  shell: |
-    source {{ working_dir }}/stackrc
-    openstack stack list -f value -c 'Stack Name'
-  register: stack_name
-  delegate_to: "{{ groups['undercloud'][0] }}"
-
-- name: Get the contents of the overcloud's rc file
-  shell: cat {{ working_dir }}/{{ stack_name.stdout }}rc
-  register: overcloudrc
-
-- block:
-  - name: Remove overcloudrc file on first controller (if exists)
-    file:
-      path: "{{ overcloud_working_dir }}/overcloudrc"
-      state: absent
-
-  - name: Copy overcloudrc file on first controller
-    lineinfile:
-      destfile: "{{ overcloud_working_dir }}/overcloudrc"
-      line: "{{ overcloudrc.stdout }}"
-      create: yes
-      mode: 0644
-
-  - name: Get environment vars from overcloudrc
-    shell: >
-       grep OS_USERNAME {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_USERNAME=//g'
-    register: "OS_USERNAME"
-
-  - name: Get environment vars from overcloudrc
-    shell: >
-       grep OS_PASSWORD {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_PASSWORD=//g'
-    register: "OS_PASSWORD"
-
-  - name: Get environment vars from overcloudrc
-    shell: >
-       grep OS_AUTH_URL {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_AUTH_URL=//g'
-    register: "OS_AUTH_URL"
-
-  - name: Get environment vars from overcloudrc
-    shell: >
-       grep -E 'OS_PROJECT_NAME|OS_TENANT_NAME' {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_.*_NAME=//g'
-    register: "OS_TENANT_NAME"
-  delegate_to: "{{ groups.controller[0] }}"
-
 - block:
     - name: Remove fence-nova STONITH device
       shell: |
@@ -94,11 +49,6 @@
     - name: Unset cluster recheck interval to 1 minute
       shell: "pcs property unset cluster-recheck-interval"
 
-  environment:
-     OS_USERNAME: "{{ OS_USERNAME.stdout }}"
-     OS_PASSWORD: "{{ OS_PASSWORD.stdout }}"
-     OS_AUTH_URL: "{{ OS_AUTH_URL.stdout }}"
-     OS_TENANT_NAME: "{{ OS_TENANT_NAME.stdout }}"
   become: yes
   delegate_to: "{{ groups.controller[0] }}"
 

@@ -40,19 +40,32 @@ if (fence_devices in ['controllers','all']):
 
 # Connect to nova
 try:
+ # Liberty/OSP-8,Mitaka/OSP-9,Newton/OSP-10
  nt = client.Client(2,
                     os_username,
                     os_password,
                     os_tenant_name,
                     os_auth_url)
+ nt.hypervisors.list()
 except:
- nt = client.Client(2,
-                    auth_url=os_auth_url,
-                    username=os_username,
-                    password=os_password,
-                    project_name=os_project_name,
-                    project_domain_name=os_project_domain_name,
-                    user_domain_name=os_user_domain_name)
+ try:
+  # Ocata/OSP-11
+  nt = client.Client(2,
+                     username=os_username,
+                     password=os_password,
+                     project_name=os_tenant_name,
+                     auth_url=os_auth_url)
+  nt.hypervisors.list()
+ except:
+  # Pike/OSP-12
+  nt = client.Client(2,
+                     auth_url=os_auth_url,
+                     username=os_username,
+                     password=os_password,
+                     project_name=os_project_name,
+                     project_domain_name=os_project_domain_name,
+                     user_domain_name=os_user_domain_name)
+  nt.hypervisors.list()
 
 # Parse instances
 for instance in nt.servers.list():

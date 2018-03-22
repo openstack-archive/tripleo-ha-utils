@@ -111,56 +111,79 @@
     source {{ working_dir }}/stackrc
     openstack stack list -f value -c 'Stack Name'
   register: stack_name
-  delegate_to: "{{ groups['undercloud'][0] }}"
+
+- name: Check if a v3 overcloud's rc file exists
+  stat:
+    path: "{{ working_dir }}/{{ stack_name.stdout }}rc.v3"
+  register: v3_rc_file_stat
+
+- name: Get the contents of the overcloud's rc file v3
+  set_fact:
+    overcloudrc: "{{ stack_name.stdout }}rc.v3"
+  when: v3_rc_file_stat.stat.exists
 
 - name: Get the contents of the overcloud's rc file
-  shell: cat {{ working_dir }}/{{ stack_name.stdout }}rc
-  register: overcloudrc
+  set_fact:
+    overcloudrc: "{{ stack_name.stdout }}rc"
+  when: not v3_rc_file_stat.stat.exists
 
 - block:
-  - name: Remove overcloudrc file on first controller (if exists)
-    file:
-      path: "{{ overcloud_working_dir }}/overcloudrc"
-      state: absent
-
-  - name: Copy overcloudrc file on first controller
-    lineinfile:
-      destfile: "{{ overcloud_working_dir }}/overcloudrc"
-      line: "{{ overcloudrc.stdout }}"
-      create: yes
-      mode: 0644
-
-  - name: Get environment vars from overcloudrc
+  - name: Get OS_USERNAME from overcloudrc
     shell: |
-       grep OS_USERNAME {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_USERNAME=//g'
+       grep OS_USERNAME {{ working_dir }}/{{ overcloudrc }} | sed 's/export OS_USERNAME=//g'
     register: "OS_USERNAME"
 
-  - name: Get environment vars from overcloudrc
+  - name: Get OS_PASSWORD from overcloudrc
     shell: |
-       grep OS_PASSWORD {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_PASSWORD=//g'
+       grep OS_PASSWORD {{ working_dir }}/{{ overcloudrc }} | sed 's/export OS_PASSWORD=//g'
     register: "OS_PASSWORD"
 
-  - name: Get environment vars from overcloudrc
+  - name: Get OS_AUTH_URL from overcloudrc
     shell: |
-       grep OS_AUTH_URL {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_AUTH_URL=//g'
+       grep OS_AUTH_URL {{ working_dir }}/{{ overcloudrc }} | sed 's/export OS_AUTH_URL=//g'
     register: "OS_AUTH_URL"
 
-  - name: Get environment vars from overcloudrc
+  - name: Get OS_PROJECT_NAME or OS_TENANT_NAME from overcloudrc
     shell: |
-       grep -E 'OS_PROJECT_NAME|OS_TENANT_NAME' {{ overcloud_working_dir }}/overcloudrc | sed 's/export OS_.*_NAME=//g'
+       grep -E 'OS_PROJECT_NAME|OS_TENANT_NAME' {{ working_dir }}/{{ overcloudrc }} | tail -1 | sed 's/export OS_.*_NAME=//g'
     register: "OS_TENANT_NAME"
-  delegate_to: "{{ groups.controller[0] }}"
+
+  - name: Get OS_USER_DOMAIN_NAME from overcloudrc
+    shell: |
+       grep OS_USER_DOMAIN_NAME {{ working_dir }}/{{ overcloudrc }} | sed 's/export OS_USER_DOMAIN_NAME=//g'
+    register: "OS_USER_DOMAIN_NAME"
+    when: v3_rc_file_stat.stat.exists
+
+  - name: Get OS_PROJECT_DOMAIN_NAME from overcloudrc
+    shell: |
+       grep OS_PROJECT_DOMAIN_NAME {{ working_dir }}/{{ overcloudrc }} | sed 's/export OS_PROJECT_DOMAIN_NAME=//g'
+    register: "OS_PROJECT_DOMAIN_NAME"
+    when: v3_rc_file_stat.stat.exists
+
+- name: Define variable for pcs additional options for overcloud's rc file v3
+  set_fact:
+    pcs_v3_rc_file_opts: ""
+
+- name: Define variable for pcs additional options for no_shared_storage
+  set_fact:
+    pcs_NovaEvacuate_no_shared_storage_opts: ""
+    pcs_fence_compute_no_shared_storage_opts: ""
+
+- name: Set pcs additional options for overcloud's rc file v3
+  set_fact:
+    pcs_v3_rc_file_opts: "project_domain=$OS_PROJECT_DOMAIN_NAME user_domain=$OS_USER_DOMAIN_NAME"
+  when: v3_rc_file_stat.stat.exists
+
+- name: Set pcs additional options for no_shared_storage
+  set_fact:
+    pcs_NovaEvacuate_no_shared_storage_opts: "no_shared_storage=1"
+    pcs_fence_compute_no_shared_storage_opts: "no-shared-storage=True"
+  when: not instance_ha_shared_storage|bool
 
 - block:
     - name: Create resource nova-evacuate
       shell: |
-        pcs resource create nova-evacuate ocf:openstack:NovaEvacuate auth_url=$OS_AUTH_URL username=$OS_USERNAME password=$OS_PASSWORD tenant_name=$OS_TENANT_NAME
-      when: instance_ha_shared_storage|bool
-
-    - name: Create resource nova-evacuate (no_shared_storage)
-      shell: |
-        pcs resource create nova-evacuate ocf:openstack:NovaEvacuate auth_url=$OS_AUTH_URL username=$OS_USERNAME password=$OS_PASSWORD tenant_name=$OS_TENANT_NAME no_shared_storage=1
-      when: not instance_ha_shared_storage|bool
+        pcs resource create nova-evacuate ocf:openstack:NovaEvacuate auth_url=$OS_AUTH_URL username=$OS_USERNAME password=$OS_PASSWORD tenant_name=$OS_TENANT_NAME {{ pcs_v3_rc_file_opts }} {{ pcs_NovaEvacuate_no_shared_storage_opts }} --force
 
     - name: Create pacemaker constraint to start nova-evacuate only on non compute nodes
       shell: |
@@ -256,21 +279,13 @@
       shell: "pcs resource defaults requires=fencing"
       when: release in [ 'pike', 'rhos-12' ]
 
-    - name: Create fence-nova pacemaker resource
-      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 --force"
-      when: instance_ha_shared_storage|bool and release not in [ 'pike', 'rhos-12' ]
-
     - name: Create fence-nova pacemaker resource (no shared storage)
-      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 no-shared-storage=True --force"
-      when: not instance_ha_shared_storage|bool and release not in [ 'pike', 'rhos-12' ]
+      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 {{ pcs_fence_compute_no_shared_storage_opts }} --force"
+      when: release not in [ 'pike', 'rhos-12' ]
 
     - name: Create fence-nova pacemaker resource (Pike/RHOS-12)
-      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 meta provides=unfencing --force"
-      when: instance_ha_shared_storage|bool and release in [ 'pike', 'rhos-12' ]
-
-    - name: Create fence-nova pacemaker resource (no shared storage, Pike/RHOS-12)
-      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 no-shared-storage=True meta provides=unfencing --force"
-      when: not instance_ha_shared_storage|bool and release in [ 'pike', 'rhos-12' ]
+      shell: "pcs stonith create fence-nova fence_compute auth-url=$OS_AUTH_URL login=$OS_USERNAME passwd=$OS_PASSWORD tenant-name=$OS_TENANT_NAME domain=localdomain record-only=1 {{ pcs_fence_compute_no_shared_storage_opts }} meta provides=unfencing --force"
+      when: release in [ 'pike', 'rhos-12' ]
 
     - name: Create pacemaker constraint for fence-nova to fix it on controller node and set resource-discovery never
       shell: "pcs constraint location fence-nova rule resource-discovery=never score=0 osprole eq controller"
@@ -340,6 +355,8 @@
      OS_PASSWORD: "{{ OS_PASSWORD.stdout }}"
      OS_AUTH_URL: "{{ OS_AUTH_URL.stdout }}"
      OS_TENANT_NAME: "{{ OS_TENANT_NAME.stdout }}"
+     OS_USER_DOMAIN_NAME: "{{ OS_USER_DOMAIN_NAME.stdout }}"
+     OS_PROJECT_DOMAIN_NAME: "{{ OS_PROJECT_DOMAIN_NAME.stdout }}"
   become: yes
   delegate_to: "{{ groups.controller[0] }}"
 
