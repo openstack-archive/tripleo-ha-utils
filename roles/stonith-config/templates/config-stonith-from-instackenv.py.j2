@@ -41,10 +41,10 @@ if (fence_devices in ['controllers','all']):
 # Connect to nova
 try:
  nt = client.Client(2,
-                    auth_url=os_auth_url,
-                    username=os_username,
-                    password=os_password,
-                    project_id=os_tenant_name)
+                    os_username,
+                    os_password,
+                    os_tenant_name,
+                    os_auth_url)
 except:
  nt = client.Client(2,
                     auth_url=os_auth_url,
