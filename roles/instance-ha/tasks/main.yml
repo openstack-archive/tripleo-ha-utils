@@ -1,4 +1,9 @@
 ---
+- name: Check if Instance HA steps were already applied
+  include: pre-checks.yml
+  when:
+    - instance_ha_action == "install"
+
 - name: Apply STONITH for controller nodes
   include_role:
     name: stonith-config

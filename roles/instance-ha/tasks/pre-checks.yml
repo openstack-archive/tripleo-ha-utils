@@ -1,0 +1,25 @@
+---
+- block:
+  - name: Check if STONITH resources already exist
+    shell: |
+      pcs stonith show | grep {{ item }}
+    with_items:
+      - fence-nova
+    register: pre_existing_stonith
+    failed_when: pre_existing_stonith.rc == 0
+
+  - name: Check if IHA resources already exist
+    shell: |
+      pcs resource show | grep "{{ item }}"
+    with_items:
+      - compute-unfence-trigger
+      - nova-compute-checkevacuate
+      - nova-compute
+      - nova-evacuate
+      - neutron-openvswitch-agent-compute
+      - libvirtd-compute
+      - ceilometer-compute
+    register: pre_existing_resources
+    failed_when: pre_existing_resources.rc == 0
+  become: yes
+  delegate_to: "{{ groups.controller[0] }}"
