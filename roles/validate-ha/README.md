@@ -7,7 +7,7 @@ functionalities of the installation.
 Requirements
 ------------
 
-The TripleO environment must be prepared as described [here](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/README.md).
+The TripleO environment must be prepared as described [here](https://github.com/openstack/tripleo-ha-utils/tree/master/README.md).
 
 This role tests also instances spawning and to make this working the
 definition of the floating network must be passed.
@@ -60,15 +60,15 @@ have been done in mitaka, and we will force the execution of the "ng_a" test
 described earlier, which is originally executed just in newton versions or
 above.
 
-All tests are performed using the tool [ha-test-suite](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/tools/ha-test-suite).
+All tests are performed using the tool [ha-test-suite](https://github.com/openstack/tripleo-ha-utils/tree/master/tools/ha-test-suite).
 
 Examples on how to invoke the playbook via ansible
 --------------------------------------------------
 
 Here's a way to invoke the tests from an *undercloud* machine prepared as
-described [here](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/README.md).
+described [here](https://github.com/openstack/tripleo-ha-utils/tree/master/README.md).
 
-    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-validate-ha.yml \
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-validate-ha.yml \
       -e release=ocata \
       -e local_working_dir=/home/stack \
       -e private_net_cidr="192.168.1.0/24" \
@@ -81,7 +81,7 @@ described [here](https://github.com/redhat-openstack/tripleo-quickstart-utils/tr
 Note that the variables above can be declared inside a config.yml file that can
 be passed to the ansible-playbook command like this:
 
-    ansible-playbook -vvvv /home/stack/tripleo-quickstart-utils/playbooks/overcloud-validate-ha.yml -e @/home/stack/config.yml
+    ansible-playbook -vvvv /home/stack/tripleo-ha-utils/playbooks/overcloud-validate-ha.yml -e @/home/stack/config.yml
 
 The result will be the same.
 

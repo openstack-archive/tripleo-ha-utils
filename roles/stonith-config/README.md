@@ -8,7 +8,7 @@ the hosts that are part of the overcloud.
 Requirements
 ------------
 
-The TripleO environment must be prepared as described [here](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/README.md).
+The TripleO environment must be prepared as described [here](https://github.com/openstack/tripleo-ha-utils/tree/master/README.md).
 
 STONITH
 -------
@@ -44,7 +44,7 @@ And something like this, depending on how many nodes are there in the overcloud:
      ipmilan-overcloud-compute-1    (stonith:fence_ipmilan):        Started overcloud-controller-1
 
 Having all this in place is a requirement for a reliable HA solution and for
-configuring special OpenStack features like [Instance HA](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/roles/instance-ha).
+configuring special OpenStack features like [Instance HA](https://github.com/openstack/tripleo-ha-utils/tree/master/roles/instance-ha).
 
 **Note**: by default this role configures STONITH for the controllers nodes,
 but it is possible to configure all the nodes or to limitate it just for
@@ -61,19 +61,19 @@ Examples on how to invoke the playbook via ansible
 
 This command line will install the STONITH devices for the controller nodes:
 
-    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10"
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10"
 
 If a user wants to install the STONITH devices for all the nodes:
 
-    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10" -e stonith_devices="all"
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10" -e stonith_devices="all"
 
 To uninstall the STONITH devices for the controllers:
 
-    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10" -e stonith_action="uninstall"
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10" -e stonith_action="uninstall"
 
 To uninstall the STONITH devices just for the computes:
 
-    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10" -e stonith_action="uninstall" -e stonith_devices="computes"
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-stonith-config.yml -e release="rhos-10" -e stonith_action="uninstall" -e stonith_devices="computes"
 
 The STONITH role supports also "none" as a valid value for *stonith_devices*
 which can become useful when configuring instance HA in an environment already

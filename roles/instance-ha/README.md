@@ -7,12 +7,12 @@ deployed TripleO overcloud environment.
 Requirements
 ------------
 
-The TripleO environment must be prepared as described [here](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/README.md).
+The TripleO environment must be prepared as described [here](https://github.com/openstack/tripleo-ha-utils/tree/master/README.md).
 
 **NOTE**: Instance-HA depends on STONITH. This means that all the steps
 performed by this role make sense only if on the overcloud STONITH has been
 configured. There is a dedicated role that automates the STONITH
-configuration, named [stonith-config](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/roles/stonith-config).
+configuration, named [stonith-config](https://github.com/openstack/tripleo-ha-utils/tree/master/roles/stonith-config).
 
 Instance HA
 -----------
@@ -184,27 +184,27 @@ Examples on how to invoke the playbook via ansible
 This command line will install the whole instance-ha solution, with controller
 stonith, compute stonith and all the instance ha steps in:
 
-    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10"
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10"
 
 By default the playbook will install the instance-ha solution with the shared
 storage configuration, but it is possible to make the installation in a no 
 shared storage environment, passing the **instance_ha_shared_storage** variable
 as **false**:
 
-    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e instance_ha_shared_storage=false
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e instance_ha_shared_storage=false
 
 If a user already installed STONITH for controllers and wants just to apply all
 the instance HA steps with STONITH for the compute nodes can launch this:
 
-    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e stonith_devices="computes"
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e stonith_devices="computes"
 
 To uninstall the whole instance HA solution:
 
-    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e instance_ha_action="uninstall"
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e instance_ha_action="uninstall"
 
 Or if you a user needs to omit STONITH for the controllers:
 
-    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e stonith_devices="computes" -e instance_ha_action="uninstall"
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e stonith_devices="computes" -e instance_ha_action="uninstall"
 
 Is it also possible to totally omit STONITH configuration by passing "none" as
 the value of *stonith_devices*.
