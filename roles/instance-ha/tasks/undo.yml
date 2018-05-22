@@ -129,11 +129,21 @@
 - name: Disable iptables traffic for pacemaker_remote
   become: yes
   shell: |
-    for rule in $(iptables-save | grep "\-A INPUT \-p tcp \-\-dport 3121 \-j ACCEPT")
+    while [ $(iptables-save | grep -c "\-A INPUT \-p tcp \-m state \-\-state NEW \-m tcp \-\-dport 3121 \-j ACCEPT") -ne 0 ]
      do
-      iptables -D INPUT -p tcp --dport 3121 -j ACCEPT
+      iptables -D INPUT -p tcp -m state --state NEW -m tcp --dport 3121 -j ACCEPT
      done
-    /sbin/service iptables save
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups['controller'] }}"
+    - "{{ groups['compute'] }}"
+
+- name: Remove iptables pacemaker_remote permanent rule
+  become: yes
+  lineinfile:
+    path: /etc/sysconfig/iptables
+    line: "-A INPUT -p tcp -m state --state NEW -m tcp --dport 3121 -j ACCEPT"
+    state: absent
   delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['controller'] }}"
