@@ -89,8 +89,18 @@
 - name: Enable iptables traffic for pacemaker_remote
   become: yes
   shell: |
-    iptables -I INPUT -p tcp --dport 3121 -j ACCEPT
-    /sbin/service iptables save
+    iptables -A INPUT -p tcp -m state --state NEW -m tcp --dport 3121 -j ACCEPT
+  delegate_to: "{{ item }}"
+  with_items:
+    - "{{ groups['controller'] }}"
+    - "{{ groups['compute'] }}"
+
+- name: Make iptables pacemaker_remote rule permanent
+  become: yes
+  lineinfile:
+    path: /etc/sysconfig/iptables
+    line: "-A INPUT -p tcp -m state --state NEW -m tcp --dport 3121 -j ACCEPT"
+    insertafter: ":OUTPUT ACCEPT"
   delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['controller'] }}"
