@@ -101,8 +101,8 @@
 
   - name: get tripleo-quickstart-utils repo
     git:
-      repo: 'https://github.com/redhat-openstack/tripleo-quickstart-utils'
-      dest: /home/stack/tripleo-quickstart-utils
+      repo: 'https://github.com/openstack/tripleo-ha-utils.git'
+      dest: /home/stack/tripleo-ha-utils
 
   - name: create ansible env file
     shell: |
@@ -113,12 +113,12 @@
 
   - name: create ansible.cfg file
     shell: |
-      printf "[defaults]\nroles_path = /home/stack/tripleo-quickstart-utils/roles"  > /home/stack/ansible.cfg
+      printf "[defaults]\nroles_path = /home/stack/tripleo-ha-utils/roles"  > /home/stack/ansible.cfg
 
   - name: run instance-ha deploy script
     shell: |
       source /home/stack/ansible_ha.env
-      ansible-playbook -v /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release={{release}} -e stonith_devices={{stonith_devices}} -e instance_ha_shared_storage={{instance_ha_shared_storage}} -e instance_ha_action={{instance_ha_action}}
+      ansible-playbook -v /home/stack/tripleo-ha-utils/playbooks/overcloud-instance-ha.yml -e release={{release}} -e stonith_devices={{stonith_devices}} -e instance_ha_shared_storage={{instance_ha_shared_storage}} -e instance_ha_action={{instance_ha_action}}
     register: instance_ha_deploy_outcome
 
   vars:
