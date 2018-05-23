@@ -9,7 +9,7 @@ overcloud environment in which it was configured.
 Requirements
 ------------
 
-A working and accessible TripleO environment, as described [here](https://github.com/redhat-openstack/tripleo-quickstart-utils/tree/master/README.md).
+A working and accessible TripleO environment, as described [here](https://github.com/openstack/tripleo-ha-utils/tree/master/README.md).
 so an *hosts* file containing the whole environment inventory and, if needed, a
 *ssh.config.ansible* with all the information to access nodes.
 
@@ -25,7 +25,7 @@ into the overcloud you can rely on a command like this one:
      -e public_net_pool_start="192.168.99.211" \
      -e public_net_pool_end="192.168.99.216" \
      -e public_net_gateway="192.168.99.254" \
-     tripleo-quickstart-utils/rally/instance-ha.yml
+     tripleo-ha-utils/rally/instance-ha.yml
 
 this command can be launched from the *undercloud* machine or from a jump host
 (which must have all the required file locally).

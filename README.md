@@ -17,10 +17,10 @@ The playbooks can be launched directly from the **undercloud** machine of the
 **TripleO** deployment. The described steps are expected to be run inside the
 */home/stack* directory.
 
-First of all a clone of the *tripleo-quickstart-utils* repository must be
+First of all a clone of the *tripleo-ha-utils* repository must be
 created:
 
-    git clone https://github.com/redhat-openstack/tripleo-quickstart-utils
+    git clone https://github.com/openstack/tripleo-ha-utils
 
 then three environment variables needs to be exported, pointing three files:
 
@@ -33,7 +33,7 @@ These files are:
 **ansible.cfg** which must contain at least these lines:
 
     [defaults]
-    roles_path = /home/stack/tripleo-quickstart-utils/roles
+    roles_path = /home/stack/tripleo-ha-utils/roles
 
 **hosts** which must be configured depending on the deployed environment,
 reflecting these sections:
@@ -90,17 +90,17 @@ In this example to connect to overcloud-controller-0 ansible will use
 
 With this setup in place is then possible to launch the playbook:
 
-    ansible-playbook /home/stack/tripleo-quickstart-utils/playbooks/overcloud-instance-ha.yml -e release=newton
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-instance-ha.yml -e release=newton
 
 Using the playbooks on tripleo-quickstart provided environment
 --------------------------------------------------------------
 
-*tripleo-quickstart-utils* project can be set as a *tripleo-quickstart*
+*tripleo-ha-utils* project can be set as a *tripleo-quickstart*
 extra requirement, so all the code will be automatically downloaded and
 available.
 Inside the requirements.txt file you will need a line pointing to this repo:
 
-    echo "https://gituhb.com/openstack/tripleo-quickstart-utils/#egg=tripleo-quickstart-utils" >> tripleo-quickstart/quickstart-extras-requirements.txt
+    echo "https://github.com/openstack/tripleo-ha-utils/#egg=tripleo-ha-utils" >> tripleo-quickstart/quickstart-extras-requirements.txt
 
 Supposing the environment was successfully provided with a previous quickstart
 execution, to use one of the utils playbook a command line like this one can be
