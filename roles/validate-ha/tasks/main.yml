@@ -118,12 +118,12 @@
   when: test_ha_ng_b|bool
 
 # Test: NG C
-- name: HA test - Pacemaker light test B
+- name: HA test - Pacemaker light test C
   vars:
-    ha_test_name: "test_pacemaker-light-b"
+    ha_test_name: "test_pacemaker-light-c"
     ha_recovery_name: "recovery_pacemaker-light"
   include_tasks: ha-test-suite.yml
-  when: test_ha_ng_b|bool
+  when: test_ha_ng_c|bool
 
 - name: Remove image file
   file:
