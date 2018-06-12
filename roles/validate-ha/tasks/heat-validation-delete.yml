@@ -1,0 +1,14 @@
+---
+
+- name: Clean the created stack
+  shell: |
+    source {{ working_dir }}/overcloudrc
+    openstack stack delete \
+      --yes \
+      --wait \
+      {{ stack_name }}
+
+- name: Clean image in Glance
+  shell: |
+    source {{ working_dir }}/overcloudrc
+    openstack image delete validate_ha_image

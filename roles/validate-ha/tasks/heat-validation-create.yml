@@ -24,23 +24,4 @@
     source {{ working_dir }}/overcloudrc
     openstack stack show -c outputs -f json {{ stack_name }} | \
       jq --raw-output '.outputs[] | select( .output_key == "server_public_ip") | .output_value'
-  register: instance_ip
-
-- name: Wait up to five minutes for the instance to be reachable
-  wait_for:
-    host: "{{ instance_ip.stdout }}"
-    port: 22
-    timeout: 300
-
-- name: Clean the created stack
-  shell: |
-    source {{ working_dir }}/overcloudrc
-    openstack stack delete \
-      --yes \
-      --wait \
-      {{ stack_name }}
-
-- name: Clean image in Glance
-  shell: |
-    source {{ working_dir }}/overcloudrc
-    openstack image delete validate_ha_image
+  register: "{{ stack_name }}_instance_ip"

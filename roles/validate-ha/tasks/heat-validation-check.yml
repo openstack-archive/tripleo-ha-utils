@@ -1,0 +1,7 @@
+---
+
+- name: Wait up to five minutes for the instance to be reachable
+  wait_for:
+    host: "{{ vars[ stack_name + '_instance_ip'].stdout }}"
+    port: 22
+    timeout: 300
