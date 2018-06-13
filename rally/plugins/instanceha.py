@@ -1,19 +1,21 @@
-import six
-import time
-import socket
-
 from os import path
+import socket
+import time
+
+
 from rally.common import logging
 from rally.common import sshutils
-from rally import consts
 from rally import exceptions
-from rally.plugins.openstack import scenario
-from rally.plugins.openstack.scenarios.vm import utils as vm_utils
-from rally.plugins.openstack.scenarios.cinder import utils as cinder_utils
+from rally_openstack import consts
+from rally_openstack import scenario
+from rally_openstack.scenarios.vm import utils as vm_utils
+from rally_openstack.scenarios.cinder import utils as cinder_utils
 from rally.task import atomic
 from rally.task import types
 from rally.task import validation
 from rally.task import utils as task_utils
+import six
+
 
 LOG = logging.getLogger(__name__)
 
@@ -45,6 +47,7 @@ def failover(self, host, command, port=22, username="", password="",
         LOG.debug("SSH session of disruptor command timeouted, continue...")
         pass
 
+
 def _run_command(self, server_ip, port, username, password, command,
                  pkey=None, key_filename=None):
     """Run command via SSH on server.
@@ -71,6 +74,7 @@ def _run_command(self, server_ip, port, username, password, command,
                        key_filename=key_filename)
     self._wait_for_ssh(ssh)
     return _run_command_over_ssh(self, ssh, command)
+
 
 @atomic.action_timer("vm.run_command_over_ssh")
 def _run_command_over_ssh(self, ssh, command):
@@ -115,6 +119,7 @@ def _run_command_over_ssh(self, ssh, command):
     cmd.extend(command.get("command_args") or [])
 
     return ssh.execute(cmd, stdin=stdin, timeout=10)
+
 
 def one_killing_iteration(self, server, fip, computes, disruptor_cmd,
                           stop_instance):
@@ -182,6 +187,7 @@ def one_killing_iteration(self, server, fip, computes, disruptor_cmd,
                                                                None)
             LOG.debug("VM console logs:\n%s", console_logs)
             raise
+
 
 def recover_instance_ha(self, image, flavor, computes,
                         volume_args=None,
@@ -284,15 +290,19 @@ def recover_instance_ha(self, image, flavor, computes,
     )
     self._delete_server_with_fip(server, fip, force_delete=force_delete)
 
+
 @types.convert(image={"type": "glance_image"},
                flavor={"type": "nova_flavor"})
-@validation.image_valid_on_flavor("flavor", "image")
-@validation.valid_command("command", required=False)
-@validation.number("port", minval=1, maxval=65535, nullable=True,
-                   integer_only=True)
-@validation.external_network_exists("floating_network")
-@validation.required_services(consts.Service.NOVA, consts.Service.CINDER)
-@validation.required_openstack(users=True, admin=True)
+@validation.add("image_valid_on_flavor",
+                flavor_param="flavor", image_param="image")
+@validation.add("valid_command", param_name="command", required=False)
+@validation.add("number", param_name="port", minval=1, maxval=65535,
+                nullable=True, integer_only=True)
+@validation.add("external_network_exists", param_name="floating_network")
+@validation.add("required_services",
+                services=[consts.Service.NOVA, consts.Service.CINDER])
+@validation.add("required_platform", platform="openstack",
+                users=True, admin=True)
 @scenario.configure(context={"cleanup@openstack": ["nova", "cinder"],
                              "keypair@openstack": {}, "allow_ssh@openstack": None},
                     name="InstanceHA.recover_instance_fip_and_volume",
@@ -320,15 +330,19 @@ class InstanceHARecoverFIPAndVolume(vm_utils.VMScenario, cinder_utils.CinderBasi
                             max_log_length=max_log_length,
                             **kwargs)
 
+
 @types.convert(image={"type": "glance_image"},
                flavor={"type": "nova_flavor"})
-@validation.image_valid_on_flavor("flavor", "image")
-@validation.valid_command("command", required=False)
-@validation.number("port", minval=1, maxval=65535, nullable=True,
-                   integer_only=True)
-@validation.external_network_exists("floating_network")
-@validation.required_services(consts.Service.NOVA, consts.Service.CINDER)
-@validation.required_openstack(users=True, admin=True)
+@validation.add("image_valid_on_flavor",
+                flavor_param="flavor", image_param="image")
+@validation.add("valid_command", param_name="command", required=False)
+@validation.add("number", param_name="port", minval=1, maxval=65535,
+                nullable=True, integer_only=True)
+@validation.add("external_network_exists", param_name="floating_network")
+@validation.add("required_services",
+                services=[consts.Service.NOVA, consts.Service.CINDER])
+@validation.add("required_platform", platform="openstack",
+                users=True, admin=True)
 @scenario.configure(context={"cleanup@openstack": ["nova", "cinder"],
                              "keypair@openstack": {}, "allow_ssh@openstack": None},
                     name="InstanceHA.recover_instance_two_cycles",
@@ -357,15 +371,19 @@ class InstanceHARecoverTwoCycle(vm_utils.VMScenario, cinder_utils.CinderBasic):
                             max_log_length=max_log_length,
                             **kwargs)
 
+
 @types.convert(image={"type": "glance_image"},
                flavor={"type": "nova_flavor"})
-@validation.image_valid_on_flavor("flavor", "image")
-@validation.valid_command("command", required=False)
-@validation.number("port", minval=1, maxval=65535, nullable=True,
-                   integer_only=True)
-@validation.external_network_exists("floating_network")
-@validation.required_services(consts.Service.NOVA, consts.Service.CINDER)
-@validation.required_openstack(users=True, admin=True)
+@validation.add("image_valid_on_flavor",
+                flavor_param="flavor", image_param="image")
+@validation.add("valid_command", param_name="command", required=False)
+@validation.add("number", param_name="port", minval=1, maxval=65535,
+                nullable=True, integer_only=True)
+@validation.add("external_network_exists", param_name="floating_network")
+@validation.add("required_services",
+                services=[consts.Service.NOVA, consts.Service.CINDER])
+@validation.add("required_platform", platform="openstack",
+                users=True, admin=True)
 @scenario.configure(context={"cleanup@openstack": ["nova", "cinder"],
                              "keypair@openstack": {}, "allow_ssh@openstack": None},
                     name="InstanceHA.recover_stopped_instance_fip",
@@ -394,15 +412,19 @@ class InstanceHARecoverStopped(vm_utils.VMScenario, cinder_utils.CinderBasic):
                             max_log_length=max_log_length,
                             **kwargs)
 
+
 @types.convert(image={"type": "glance_image"},
                flavor={"type": "nova_flavor"})
-@validation.image_valid_on_flavor("flavor", "image")
-@validation.valid_command("command", required=False)
-@validation.number("port", minval=1, maxval=65535, nullable=True,
-                    integer_only=True)
-@validation.external_network_exists("floating_network")
-@validation.required_services(consts.Service.NOVA, consts.Service.CINDER)
-@validation.required_openstack(users=True, admin=True)
+@validation.add("image_valid_on_flavor",
+                flavor_param="flavor", image_param="image")
+@validation.add("valid_command", param_name="command", required=False)
+@validation.add("number", param_name="port", minval=1, maxval=65535,
+                nullable=True, integer_only=True)
+@validation.add("external_network_exists", param_name="floating_network")
+@validation.add("required_services",
+                services=[consts.Service.NOVA, consts.Service.CINDER])
+@validation.add("required_platform", platform="openstack",
+                users=True, admin=True)
 @scenario.configure(context={"cleanup@openstack": ["nova", "cinder"],
                              "keypair@openstack": {}, "allow_ssh@openstack": None},
                     name="InstanceHA.recover_instance_nova_compute",
