@@ -89,7 +89,7 @@
 - name: Enable iptables traffic for pacemaker_remote
   become: yes
   shell: |
-    iptables -A INPUT -p tcp -m state --state NEW -m tcp --dport 3121 -j ACCEPT
+    iptables -I INPUT -p tcp -m state --state NEW -m tcp --dport 3121 -j ACCEPT
   delegate_to: "{{ item }}"
   with_items:
     - "{{ groups['controller'] }}"
