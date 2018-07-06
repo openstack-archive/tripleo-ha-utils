@@ -280,11 +280,6 @@
           pcs constraint order start openstack-nova-conductor-clone then nova-compute-checkevacuate-clone require-all=false
       when: release in [ 'liberty', 'rhos-8', 'mitaka', 'rhos-9' ]
 
-    - name: Check if ipmi exists for all compute nodes
-      shell: |
-          pcs stonith show ipmilan-{{ hostvars[item]['ansible_hostname'] }}
-      with_items: "{{ groups['compute'] }}"
-
     - name: Set requires to fencing as default for all resources (Pike/RHOS-12)
       shell: "pcs resource defaults requires=fencing"
       when: release in [ 'pike', 'rhos-12' ]
@@ -319,8 +314,10 @@
       shell: "pcs property set --node {{ hostvars[item]['ansible_hostname'] }} osprole=compute"
       with_items: "{{ groups['compute'] }}"
 
-    - name: Add pacemaker stonith devices of compute nodes to level 1
-      shell: "pcs stonith level add 1 {{ hostvars[item]['ansible_hostname'] }} ipmilan-{{ hostvars[item]['ansible_hostname'] }},fence-nova"
+    - name: Add STONITH level definitions for compute nodes
+      shell: |
+        compute_stonith_name=$(cibadmin --query --xpath "//primitive[@class='stonith']/instance_attributes/nvpair[@value='{{ item }}']" | sed 's/.*id="\(.*\)-instance_attributes-pcmk_host_list".*/\1/g')
+        pcs stonith level add 1 {{ item }} $compute_stonith_name,fence-nova
       with_items: "{{ groups['compute'] }}"
 
     - name: Enable keystone resource

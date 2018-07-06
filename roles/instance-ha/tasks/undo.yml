@@ -1,5 +1,14 @@
 ---
 - block:
+    - name: Remove STONITH level definitions for compute nodes
+      shell: |
+        compute_stonith_name=$(cibadmin --query --xpath "//primitive[@class='stonith']/instance_attributes/nvpair[@value='{{ item }}']" | sed 's/.*id="\(.*\)-instance_attributes-pcmk_host_list".*/\1/g')
+        for stonith_level in $(cibadmin --query --xpath "//configuration/fencing-topology/fencing-level[@devices='$compute_stonith_name,fence-nova'][@index='1'][@target='{{ item }}']" --node-path)
+         do
+          pcs stonith level delete 1 {{ item }} $compute_stonith_name,fence-nova
+         done
+      with_items: "{{ groups['compute'] }}"
+
     - name: Remove fence-nova STONITH device
       shell: |
         for stonithid in $(pcs stonith show | awk '/fence_compute/ {print $1}')
