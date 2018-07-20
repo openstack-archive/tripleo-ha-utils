@@ -193,6 +193,12 @@ as **false**:
 
     ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e instance_ha_shared_storage=false
 
+If a user configured the overcloud with a specific domain it is possible to
+override the default "localdomain" value by passing the **overcloud_domain**
+variable to the playbook:
+
+    ansible-playbook /home/stack/tripleo-ha-utils/playbooks/overcloud-instance-ha.yml -e release="rhos-10" -e overcloud_domain="mydomain"
+
 If a user already installed STONITH for controllers and wants just to apply all
 the instance HA steps with STONITH for the compute nodes can launch this:
 
