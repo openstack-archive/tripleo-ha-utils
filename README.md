@@ -71,6 +71,9 @@ reflecting these sections:
     . /home/stack/stackrc
     openstack server list -c Name -c Networks | awk '/ctlplane/ {print $2, $4}' | sed s/ctlplane=//g | while read node; do node_name=$(echo $node | cut -f 1 -d " "); node_ip=$(echo $node | cut -f 2 -d " "); echo -e "Host $node_name\n Hostname $node_ip\n IdentityFile /home/stack/.ssh/id_rsa\n User heat-admin\n StrictHostKeyChecking no\n UserKnownHostsFile=/dev/null\n"; done >> ssh.config.ansible
 
+You will have to configure the domain for your hosts in *roles/instance-ha/defaults/main.yml*:
+
+    domain: "mycustom.domain" 
 
 It can *optionally* contain specific per-host connection options, like these:
 

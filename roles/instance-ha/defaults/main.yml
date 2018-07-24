@@ -8,3 +8,6 @@ instance_ha_action: "install"
 
 # Do we have a shared storage or not?
 instance_ha_shared_storage: true
+
+# Domain to use in nova-compute-checkevacuate and fence-nova stonith resources
+domain: "localdomain"
