@@ -15,6 +15,12 @@
   with_items:
     - "{{ groups['controller'] }}"
 
+- name: Apply latency (if defined)
+  vars:
+    latency_action: "add"
+  include_tasks: manage-latency.yml
+  when: latency_ms|int > 0
+
 - name: Create the environment template on undercloud
   template:
     src: "{{ validate_ha_heat_environment }}"
@@ -129,3 +135,9 @@
   file:
      path: "{{ working_dir }}/{{ heat_image_name }}"
      state: absent
+
+- name: Remove latency (if defined)
+  vars:
+    latency_action: "del"
+  include_tasks: manage-latency.yml
+  when: latency_ms|int > 0
