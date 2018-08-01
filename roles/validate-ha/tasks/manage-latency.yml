@@ -1,0 +1,12 @@
+# Manage latency on all nodes
+- name: "Manage latency on all nodes"
+  shell: |
+    /usr/sbin/tc qdisc {{ latency_action }} dev {{ latency_eth_interface }} root netem delay {{ latency_ms }}ms
+  delegate_to: "{{ item }}"
+  become: true
+  with_items:
+    - "{{ groups['overcloud'] }}"
+  when:
+    - latency_action in [ "add", "del" ]
+    - latency_eth_interface is defined
+    - latency_ms|int > 0

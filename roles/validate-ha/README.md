@@ -62,6 +62,29 @@ above.
 
 All tests are performed using the tool [ha-test-suite](https://github.com/openstack/tripleo-ha-utils/tree/master/tools/ha-test-suite).
 
+Applying latency
+----------------
+
+It is possible to add an arbitrary amount of milliseconds of latency on each
+overcloud node to check whether the environment can pass the HA validation in
+any case.
+Adding the latency will be a matter of passing two variables:
+
+* **latency_ms**: which will be the number of additional milliseconds to be
+added to the interface;
+* **latency_eth_interface**: the physical interface to which the user wants to
+apply the latency, this must be present in all the overcloud nodes;
+
+So a typical command line in which a user wants to add 20ms of latency on the
+ethernet device eth0 will contain something like this:
+
+    ...
+    -e latency_ms=20 \
+    -e latency_eth_interface=eth0 \
+    ...
+
+The latency will be applied before the tests execution and remove right after.
+
 Examples on how to invoke the playbook via ansible
 --------------------------------------------------
 
