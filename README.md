@@ -8,7 +8,7 @@ deployments. They can also be used together with
 
 The documentation of each role is located in the individual role folders.
 General usage information about *tripleo-quickstart* can be found in the
-[project documentation](http://docs.openstack.org/developer/tripleo-quickstart/).
+[project documentation](https://docs.openstack.org/tripleo-quickstart/latest/).
 
 Using the playbook on an existing TripleO environment
 -----------------------------------------------------
