@@ -2,9 +2,13 @@
 - name: Gather undercloud and overcloud facts
   hosts: undercloud overcloud
   gather_facts: yes
+  tags:
+    - overcloud-validate-ha
 
 - name:  Validate overcloud HA status
   hosts: undercloud
   gather_facts: yes
+  tags:
+    - overcloud-validate-ha
   roles:
     - validate-ha
