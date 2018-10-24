@@ -6,9 +6,11 @@
     openstack stack delete \
       --yes \
       --wait \
-      {{ stack_name }}
+      {{ stack_name }} > \
+      {{ validate_ha_logs_dir }}/{{ ha_test_name }}_heat-delete.log 2>&1
 
 - name: Clean image in Glance
   shell: |
     source {{ working_dir }}/overcloudrc
-    openstack image delete validate_ha_image
+    openstack image delete validate_ha_image > \
+    {{ validate_ha_logs_dir }}/{{ ha_test_name }}_image-delete.log 2>&1
