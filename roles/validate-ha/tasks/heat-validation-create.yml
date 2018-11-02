@@ -25,6 +25,6 @@
   shell: |
     source {{ working_dir }}/overcloudrc
     openstack stack show -c outputs -f json {{ stack_name }} | \
-      jq --raw-output '.outputs[] | select( .output_key == "server_public_ip") | .output_value' > \
-      {{ validate_ha_logs_dir }}/{{ ha_test_name }}_heat-instance-ip.log 2>&1
+      jq --raw-output '.outputs[] | select( .output_key == "server_public_ip") | .output_value' 2>&1 | \
+      tee {{ validate_ha_logs_dir }}/{{ ha_test_name }}_heat-instance-ip.log
   register: "{{ stack_name }}_instance_ip"
