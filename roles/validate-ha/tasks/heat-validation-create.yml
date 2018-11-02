@@ -19,7 +19,7 @@
       --template validate-ha-heat-template.yaml \
       --wait \
       {{ stack_name }} > \
-      {{ validate_ha_logs_dir }}/{{ ha_test_name }}_heat-create.log 2>&1 
+      {{ validate_ha_logs_dir }}/{{ ha_test_name }}_heat-create.log 2>&1
 
 - name: Get instance IP
   shell: |
