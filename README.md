@@ -136,7 +136,7 @@ You might need to export *ANSIBLE_SSH_ARGS* with the path of the
 License
 -------
 
-GPL
+Licensed under the Apache License, Version 2.0. You may obtain a copy of the License at [http://www.apache.org/licenses/LICENSE-2.0]()
 
 Author Information
 ------------------
