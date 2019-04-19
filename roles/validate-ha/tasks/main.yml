@@ -10,7 +10,7 @@
 
 - name: Copy ha-test-suite on controllers
   shell: >
-    /usr/bin/rsync --delay-updates -F --compress --archive -e 'ssh -F {{ local_working_dir }}/ssh.config.ansible' /home/{{ undercloud_user }}/src/git.openstack.org/openstack/tripleo-ha-utils/tools/ha-test-suite {{ hostvars[item]['ansible_hostname'] }}:
+    /usr/bin/rsync --delay-updates -F --compress --archive -e 'ssh -F {{ local_working_dir }}/ssh.config.ansible' /home/{{ undercloud_user }}/src/opendev.org/openstack/tripleo-ha-utils/tools/ha-test-suite {{ hostvars[item]['ansible_hostname'] }}:
   delegate_to: "localhost"
   with_items:
     - "{{ groups['controller'] }}"
