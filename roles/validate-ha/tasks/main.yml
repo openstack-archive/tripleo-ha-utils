@@ -10,7 +10,11 @@
 
 - name: Copy ha-test-suite on controllers
   shell: >
+    {% if (undercloud_user == 'zuul') and (zuul.projects is defined) -%}
     /usr/bin/rsync --delay-updates -F --compress --archive -e 'ssh -F {{ local_working_dir }}/ssh.config.ansible' /home/{{ undercloud_user }}/src/opendev.org/openstack/tripleo-ha-utils/tools/ha-test-suite {{ hostvars[item]['ansible_hostname'] }}:
+    {%- else -%}
+    /usr/bin/rsync --delay-updates -F --compress --archive -e 'ssh -F {{ local_working_dir }}/ssh.config.ansible' {{ local_working_dir }}/tripleo-ha-utils/tools/ha-test-suite {{ hostvars[item]['ansible_hostname'] }}:
+    {%- endif -%}
   delegate_to: "localhost"
   with_items:
     - "{{ groups['controller'] }}"
