@@ -18,7 +18,7 @@
 
     - name: Remove resources associated to remote nodes
       shell: |
-        for resourceid in $(pcs resource show | grep compute | grep -v -e Stopped: -e Started: -e disabled -e remote | awk '{print $3}')
+        for resourceid in $(pcs resource show | grep compute | grep 'Clone Set:' | awk '{print $3}')
          do
           pcs resource cleanup $resourceid
           pcs --force resource delete $resourceid
